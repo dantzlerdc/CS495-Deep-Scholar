@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+title: "CS495 Deep Scholar"
+authors:
+  - family-names: Dantzler
+    given-names: DeWayne
+  - family-names: Albuquerque
+    given-names: Pedro
+    name-suffix: "Prof. Dr."
+date-released: 2026-04-08
+version: 1.0.0
+license: MIT
+repository-code: https://github.com/dantzlerdc/CS495-Deep-Scholar
