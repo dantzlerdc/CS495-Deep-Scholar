@@ -1,0 +1,7 @@
+ticket_id,action,option_type,K,kelly_variant,f,hit_rate,total_pnl,max_drawdown,sharpe_annualized
+3,sell,call,277.5,full,0.2067,0.607,4423380.0,-248040.0,3.4777
+3,sell,call,277.5,half,0.1034,0.607,2212760.0,-124080.0,3.4777
+3,sell,call,277.5,quarter,0.0517,0.607,1106380.0,-62040.0,3.4777
+6,sell,put,280.0,full,0.1784,0.587,3104160.0,-214080.0,2.805
+6,sell,put,280.0,half,0.0892,0.587,1552080.0,-107040.0,2.805
+6,sell,put,280.0,quarter,0.0446,0.587,776040.0,-53520.0,2.805
