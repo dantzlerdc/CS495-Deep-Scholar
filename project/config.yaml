@@ -1,0 +1,43 @@
+amd:
+  S: 275.10               # AMD stock price at data collection
+  r: 0.053                # Risk-free rate (3-month T-bill yield)
+  collection_date: "2026-04-27"
+  expiry_date: "2026-05-08"
+
+model:
+  N: 100                  # CRR binomial tree step count
+
+# Four AMD trade tickets from Fidelity chain (American-style, no dividends)
+tickets:
+  - id: 3
+    action: "sell"
+    option_type: "call"
+    K: 277.50
+    V_market: 14.25
+    iv: 0.64
+    break_even: 291.75
+  - id: 4
+    action: "buy"
+    option_type: "put"
+    K: 280.00
+    V_market: 18.55
+    iv: 0.65
+    break_even: 261.45
+  - id: 5
+    action: "buy"
+    option_type: "call"
+    K: 280.00
+    V_market: 14.20
+    iv: 0.65
+    break_even: 294.20
+  - id: 6
+    action: "sell"
+    option_type: "put"
+    K: 280.00
+    V_market: 17.87
+    iv: 0.64
+    break_even: 262.13
+
+kelly:
+  capital: 100000         # Base capital for dollar position sizing
+  min_edge: 0.02          # Minimum |edge| to recommend a trade (filters noise)

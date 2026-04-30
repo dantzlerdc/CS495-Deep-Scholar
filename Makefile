@@ -11,9 +11,10 @@ else
     SEP     := /
 endif
 
-POETRY := $(VENV)$(SEP)poetry
+POETRY  := $(VENV)$(SEP)poetry
+PYEXEC  := $(VENV)$(SEP)python
 
-.PHONY: setup clean
+.PHONY: setup run clean
 
 # ── setup: create venv, install poetry, install project deps ─────────
 setup:
@@ -28,6 +29,10 @@ ifeq ($(OS),Windows_NT)
 else
 	@echo "  source .venv/bin/activate"
 endif
+
+# ── run: execute the end-to-end AMD CRR + Kelly pipeline ─────────────
+run:
+	cd project && ../$(PYEXEC) main.py config.yaml
 
 # ── clean: remove the virtualenv ─────────────────────────────────────
 clean:
