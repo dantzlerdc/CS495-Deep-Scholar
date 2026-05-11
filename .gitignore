@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+.Rhistory
+
+# Large data files (too large for GitHub — download via Kaggle)
+project/data/*.csv
+
+# Trained model artifacts (regenerate with make run-layer2)
+project/outputs/*.pkl
+
+# Build outputs (regenerate with make run-all)
+project/outputs/*.png
+project/outputs/*.csv

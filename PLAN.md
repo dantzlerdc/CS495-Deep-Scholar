@@ -99,3 +99,84 @@ formula is used without a continuous yield adjustment:
 <!-- Ok to use Claude to help build the PLAN.md -->
 <!-- Learn how to use claude's MCP's to connect claude to github repo -->
 
+---
+
+## Deliverable Artifacts
+
+The following files are generated outputs used for documentation, presentation, and model verification.
+Each entry lists the build command, the source script that produces it, and its purpose in the project.
+
+---
+
+### CRR-Binomial-Option-Pricing-Model-Pipeline-Components.pdf
+
+<!-- Documents every stage of the six-stage pipeline in a reference card format.
+     One page per component (config.yaml, data.py, tree.py, greeks.py, edge.py,
+     kelly.py, simulation.py, main.py). Each card covers Purpose, Key Functions /
+     Items, and How to Run. Intended audience: instructors and reviewers who need
+     to understand what each file does without reading the source code. -->
+
+- **Source script:** `make_pipeline_components_pdf.py`
+- **Build command:**
+  ```
+  .venv/bin/python3 make_pipeline_components_pdf.py
+  ```
+- **Output location:** `CRR-Binomial-Option-Pricing-Model-Pipeline-Components.pdf` (repo root)
+- **Pages:** 9 (1 overview + 1 per pipeline component)
+- **Used for:** Project documentation; Phase 6 deliverable — reproducible code repository reference
+
+---
+
+### CRR-Binomial-Option-Pricing-Model-Scheme.pdf
+
+<!-- A technical deep-dive into the CRR pricing model using AMD $350 options as a
+     worked example. Covers three parts:
+       Part 1 -- Forward Pass: how the stock price lattice is built (u/d multipliers,
+                 node price formula, risk-neutral probability, terminal price fan).
+       Part 2 -- Backward Induction: how option values are computed right-to-left
+                 (terminal payoffs, recursion formula, amber/teal/green/gray node
+                 color key, worked Step 3 example, root node final price).
+       Part 3 -- V_model vs V_market: meaning of the two prices, edge formula,
+                 why edge is near zero when IV is solved from market, and a
+                 practical example using IV=65% vs market-implied 74.73%.
+     Intended audience: presentation panels, research report appendix, and anyone
+     who needs to understand the math behind the pipeline outputs. -->
+
+- **Source script:** `make_crr_pdf.py`
+- **Build command:**
+  ```
+  .venv/bin/python3 make_crr_pdf.py
+  ```
+- **Output location:** `~/CRR-Binomial-Pricing-AMD-Options.pdf` (home directory)
+- **Pages:** 6 (forward pass, backward induction, V_model/V_market interpretation)
+- **Key parameters used:** S=341.35, K=350, r=5.3%, IV=74.73% (put), IV=73.92% (call), T=18 days, N=4 (visual) / N=100 (pipeline)
+- **Used for:** Research report theory section; model verification documentation
+
+---
+
+### crr_pipeline_animation.html
+
+<!-- A self-contained interactive browser animation of the CRR binomial tree
+     construction for the AMD $350 put option. Shows the pipeline in six phases:
+       Intro        -- parameter summary panel
+       Forward pass -- stock price lattice built left-to-right, column by column
+       Terminal     -- leaf node payoffs seeded at expiry (green=ITM, gray=OTM)
+       Backward     -- option values computed right-to-left (amber=exercise,
+                       teal=hold, with hold/intrinsic values shown per node)
+       Pricing      -- Stage 2 CRR results: V_model vs V_market, error, edge,
+                       Kelly recommendation for all four AMD tickets
+       Takeaways    -- key model conclusions and interpretation summary
+     Controls: play/pause, step forward/back, speed dial, phase-jump buttons,
+     scrub slider. Fully self-contained (~6.3 MB); no server required.
+     Intended audience: live classroom or presentation demos; visual supplement
+     to the research report explaining how the model works step by step. -->
+
+- **Source script:** `crr_binomial_pricing_amd_html.py`
+- **Build command:**
+  ```
+  .venv/bin/python3 crr_binomial_pricing_amd_html.py
+  ```
+- **Output location:** `crr_pipeline_animation.html` (repo root)
+- **Total frames:** 51 (N=4 visual tree; N=100 used for pipeline pricing results)
+- **Used for:** Phase 6 deliverable — final presentation slides / live demo
+
