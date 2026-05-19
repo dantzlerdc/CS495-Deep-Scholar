@@ -1,42 +1,43 @@
 amd:
-  S: 275.10               # AMD stock price at data collection
+  S: 341.35               # AMD stock price at data collection (05/04/26 12:01 ET)
   r: 0.053                # Risk-free rate (3-month T-bill yield)
-  collection_date: "2026-04-27"
-  expiry_date: "2026-05-08"
+  collection_date: "2026-05-04"
+  expiry_date: "2026-05-22"
 
 model:
   N: 100                  # CRR binomial tree step count
 
-# Four AMD trade tickets from Fidelity chain (American-style, no dividends)
+# Four AMD $350 strike tickets from Fidelity ROTH IRA (American-style, no dividends)
+# IV solved from market limit prices via CRR implied-vol solver
 tickets:
+  - id: 1
+    action: "buy"
+    option_type: "call"
+    K: 350.00
+    V_market: 18.95
+    iv: 0.7392
+    break_even: 368.95
+  - id: 2
+    action: "sell"
+    option_type: "call"
+    K: 350.00
+    V_market: 18.95
+    iv: 0.7392
+    break_even: 368.95
   - id: 3
-    action: "sell"
-    option_type: "call"
-    K: 277.50
-    V_market: 14.25
-    iv: 0.64
-    break_even: 291.75
+    action: "buy"
+    option_type: "put"
+    K: 350.00
+    V_market: 27.00
+    iv: 0.7473
+    break_even: 323.00
   - id: 4
-    action: "buy"
-    option_type: "put"
-    K: 280.00
-    V_market: 18.55
-    iv: 0.65
-    break_even: 261.45
-  - id: 5
-    action: "buy"
-    option_type: "call"
-    K: 280.00
-    V_market: 14.20
-    iv: 0.65
-    break_even: 294.20
-  - id: 6
     action: "sell"
     option_type: "put"
-    K: 280.00
-    V_market: 17.87
-    iv: 0.64
-    break_even: 262.13
+    K: 350.00
+    V_market: 27.00
+    iv: 0.7473
+    break_even: 323.00
 
 kelly:
   capital: 100000         # Base capital for dollar position sizing

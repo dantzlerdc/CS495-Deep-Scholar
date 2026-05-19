@@ -7,6 +7,10 @@
            analysis: independent p-estimator, crowd bias detector,
            microstructure-aware trading policy, probability
            calibration, and ethics section.
+       (C) The Layer 1 vs Layer 2 cross-model comparison originally
+           documented in PLAN3.md (merged here for a single source
+           of truth). The comparison is additive -- no existing
+           pipeline module is modified.
 
      HOW TO READ THIS FILE
      ---------------------
@@ -91,8 +95,18 @@ where crowd behavior creates structural, predictable bias.
   as American-style. Early exercise capability is required at every node. European-style
   pricing is excluded.
 
-- **No dividends.** AMD dividend treatment is excluded from all model runs. The standard CRR
-  risk-neutral probability formula is used without a continuous yield adjustment.
+- **No dividends (Layer 1 — known limitation).** The CRR binomial tree uses the standard
+  risk-neutral probability formula `p = (exp(r*dt) - d) / (u - d)` with no continuous
+  dividend yield adjustment. This was scoped to AMD, which pays negligible dividends.
+  When Layer 1 is applied to the AAPL Kaggle dataset for cross-layer comparison, the
+  missing dividend term causes measurable systematic pricing error: puts are underpriced
+  by a mean of **-10.76%** and calls are overpriced by **+6.58%** relative to market
+  prices (measured across 1,500 sampled contracts per type, 2016–2020). AAPL's dividend
+  yield over this period was approximately 0.6–1.0% annually. The correct fix would add
+  a yield term `q` to the CRR up/down factors (`u = exp((r - q)*dt + sigma*sqrt(dt))`),
+  but this is outside the AMD-scoped project boundary. The pricing error is documented
+  here as a known, quantified limitation rather than silently corrected, consistent with
+  the research report's limitations section (Section 7).
 
 - **Binary event analog.** AMD options are treated as a proxy for binary prediction market
   contracts: the option either expires ITM (like a $1 resolution) or OTM (like a $0
@@ -105,6 +119,20 @@ where crowd behavior creates structural, predictable bias.
 - **Ethics disclaimer.** Results must not be interpreted as guaranteed profits. All edge
   estimates are model-dependent and subject to IV calibration assumptions. An explicit
   ethics / responsible trading section is included in the research report.
+
+- **Shared training data (cross-model comparison).** The Layer 2 XGBoost model is trained on
+  80% of the full AAPL dataset. When edge_L2 is computed on a fresh 10% sample, some contracts
+  may overlap with training data, slightly inflating agreement due to overfitting. This is noted
+  but not corrected since the comparison is methodological rather than a held-out generalization test.
+
+- **q_market is a rough proxy.** The market-implied probability formula (`P_mid / STRIKE` for
+  puts, `C_mid / UNDERLYING` for calls) is a simplified approximation, not a true risk-neutral
+  probability. It serves as a consistent relative measure but should not be interpreted as a
+  precise probability estimate.
+
+- **Risk-free rate is constant.** A flat r = 2% is used for all contracts across the 2016–2020
+  AAPL comparison dataset. The actual Fed Funds rate ranged from 0.5% to 2.5%, introducing small
+  pricing errors in Layer 1.
 
 ---
 
@@ -146,13 +174,17 @@ LAYER 2: Prediction Market Extensions (new)
  micro_cost.py    -- fee/spread/slippage model
        │
        ▼
- calibration.py   -- Brier score, calibration curves
-       │
-       ▼
  policy.py        -- regime-conditional trade entry/exit policy
        │
        ▼
  backtest.py      -- unified P&L + regime backtest runner
+
+LAYER 3: Cross-Model Comparison (additive, no existing modules modified)
+─────────────────────────────────────────────────────────────────
+ layer1_vs_layer2.py  -- common AAPL sample, L1 + L2 edge signals, 4-panel plot
+       │
+       ▼
+ make_aapl_crr_animation.py  -- animated CRR tree for two selected contracts
 ```
 
 ---
@@ -296,27 +328,7 @@ LAYER 2: Prediction Market Extensions (new)
 - [ ] Compute hit rate: fraction of trades where model predicted direction correctly
 - [ ] Generate P&L curve plot for experiment dashboard
 
-### Phase 7: Probability Calibration and Evaluation (Layer 2 — new)
-
-<!-- PROJECT 6 REQUIREMENT: Experiment dashboard — "Calibration curves"
-     and research report — "Model for p (true probability)"
-     Calibration measures whether the model's probability output is
-     trustworthy. A model that says p=0.70 should be right 70% of the time.
-
-     The Brier score is the standard scoring rule for binary probability
-     models. It equals mean((p_predicted - outcome)^2). Lower is better.
-     A naive baseline (always predict 0.5) has Brier score = 0.25.
-
-     This phase produces the calibration deliverable required by Project 6
-     and provides an honest assessment of the p-estimator's accuracy. -->
-
-- [ ] Compute Brier score for p_estimator.py on held-out test set
-- [ ] Compare Brier score against: (a) naive baseline, (b) market-implied q, (c) CRR V_model
-- [ ] Generate reliability diagram (calibration curve): predicted p vs actual outcome frequency
-- [ ] Report expected calibration error (ECE) as a summary statistic
-- [ ] Save calibration_curve.png to project/outputs/ for experiment dashboard
-
-### Phase 8: Deliverables
+### Phase 7: Deliverables
 
 <!-- PROJECT 6 DELIVERABLE REQUIREMENTS:
        1. Research report (10-20 pages)
@@ -334,7 +346,9 @@ LAYER 2: Prediction Market Extensions (new)
 - [ ] Section 4 — Independent p-estimator (ML model design, features, calibration)
 - [ ] Section 5 — Trading policy and risk controls (edge threshold, Kelly sizing, microstructure)
 - [ ] Section 6 — Backtest results (P&L, Sharpe, drawdown, hit rate, calibration)
-- [ ] Section 7 — Limitations (IV calibration assumption, data availability, no live trading)
+- [ ] Section 7 — Limitations (IV calibration assumption, data availability, no live trading,
+      no dividend adjustment in Layer 1 CRR tree: measured -10.76% put / +6.58% call
+      pricing error on AAPL 2016-2020; yield term omitted by AMD project scope)
 - [ ] Section 8 — Ethics / responsible trading disclaimer
 
 #### Code Repository
@@ -351,7 +365,6 @@ LAYER 2: Prediction Market Extensions (new)
 - [ ] p_estimator.py — ML probability model training and calibration (Layer 2)
 - [ ] bias_detector.py — regime classifier and crowd bias indicators (Layer 2)
 - [ ] micro_cost.py — fee, spread, slippage cost model (Layer 2)
-- [ ] calibration.py — Brier score and calibration curve (Layer 2)
 - [ ] policy.py — regime-conditional trade entry/exit policy (Layer 2)
 - [ ] backtest.py — walk-forward historical backtest runner (Layer 2)
 
@@ -361,9 +374,9 @@ LAYER 2: Prediction Market Extensions (new)
 - [x] convergence.png — CRR price convergence as N increases
 - [x] kelly_fractions.png — full/half/quarter-Kelly dollar positions
 - [x] early_exercise_boundary.png — S* boundary for AMD American puts
-- [ ] calibration_curve.png — predicted p vs actual outcome frequency (Brier)
 - [ ] pnl_curve.png — cumulative P&L over the walk-forward backtest window
 - [ ] regime_analysis.png — RV-IV spread, IV momentum, regime state over time
+- [x] l1_vs_l2_comparison.png — 4-panel Layer 1 vs Layer 2 cross-model comparison (Phase 8)
 
 #### Final Presentation
 
@@ -375,6 +388,67 @@ LAYER 2: Prediction Market Extensions (new)
 - [ ] Slide 6 — When does the crowd become systematically wrong? (regime analysis plot)
 - [ ] Slide 7 — Failure cases and limitations
 - [ ] Slide 8 — Ethics and responsible trading disclaimer
+
+### Phase 8: Layer 1 vs Layer 2 Cross-Model Comparison
+
+<!-- Originally documented in PLAN3.md. Answers the core scientific
+     question: do two completely independent methods -- CRR (mathematical,
+     no-arbitrage) and XGBoost (empirical, ML) -- agree on which AAPL
+     options are mispriced by the crowd? Agreement validates both models
+     simultaneously; disagreement zones are findings in their own right.
+     Both layers must be fully built before running this phase.
+
+     Edge signals on the same scale:
+       Layer 1: edge_L1 = (V_model_rv - V_market) / V_market
+                  using sigma = RV30 (not IV, which reproduces market by construction)
+       Layer 2: edge_L2 = p_independent - q_market
+                  where q_market = P_mid/STRIKE (puts) or C_mid/UNDERLYING (calls)
+
+     Quadrant interpretation on the L1 vs L2 scatter:
+       Quadrant III (both negative): both say market overprices → strong SELL
+       Quadrant I  (both positive):  both say market underprices → strong BUY
+       Quadrants II/IV:              models disagree → mixed signal, stay out -->
+
+- [x] Build common dataset: sample 1,500 valid puts + 1,500 valid calls from AAPL 2016–2020
+      Kaggle data via `market_data.load_prepared()` (DTE ≥ 5, bid/ask > 0, IV > 1%, RV30 > 1%)
+- [x] Compute Layer 1 edge signal per contract using `tree.price_american_option()` with
+      sigma = RV30, r = 0.02, N = 50 steps
+- [x] Compute Layer 2 edge signal per contract using trained XGBoost models via
+      `p_estimator.load("call")` and `p_estimator.load("put")`
+- [x] Join regime labels via `bias_detector.compute_atm_iv()` + `compute_regime()` on QUOTE_DATE
+- [x] Generate `project/outputs/l1_vs_l2_comparison.png` — 4 panels:
+      (1) Edge scatter L1 vs L2, colored by regime, Pearson r annotated
+      (2) Agreement breakdown bar chart (% in each quadrant)
+      (3) Actual ITM rate by agreement zone (predictive content check)
+      (4) Regime-conditional Pearson r (normal vs herding)
+- [x] Generate `aapl_crr_comparison.html` — animated CRR tree for two selected AAPL contracts:
+      Contract A (herding regime, both models agree market overprices: edge_L1 < -0.15, edge_L2 < -0.03)
+      Contract B (normal regime, both models agree pricing is fair: |edge_L1| < 0.08, |edge_L2| < 0.04)
+
+#### Additional Code Repository Entries (Phase 8)
+
+- [x] `project/layer1_vs_layer2.py` — comparison analysis + 4-panel plot
+- [x] `make_aapl_crr_animation.py` — animated HTML CRR simulation for two AAPL contracts
+
+#### Additional Dashboard Outputs (Phase 8)
+
+- [x] `project/outputs/l1_vs_l2_comparison.png` — 4-panel cross-model comparison figure
+- [x] `aapl_crr_comparison.html` — animated CRR tree tied to comparison findings
+
+#### Build Commands
+
+```bash
+# Both layers must be built first (make run && make run-layer2)
+
+# Generate comparison plots
+.venv/bin/python project/layer1_vs_layer2.py
+
+# Generate animated HTML simulation
+.venv/bin/python make_aapl_crr_animation.py
+
+# Or run both via Makefile
+make run-comparison
+```
 
 ---
 
@@ -489,8 +563,8 @@ LAYER 2: Prediction Market Extensions (new)
      These are the exact same files produced by PLAN.md -- nothing
      built in the original pipeline is removed. The three files
      below document and visualize Layer 1 (CRR engine). The Layer 2
-     outputs (calibration curve, P&L curve, regime plot) are added
-     to project/outputs/ by the new modules in Phase 7.
+     outputs (P&L curve, regime plot) are added
+     to project/outputs/ by the new modules in Phase 6.
      ============================================================ -->
 
 ---
@@ -545,6 +619,53 @@ LAYER 2: Prediction Market Extensions (new)
 - **Output location:** `crr_pipeline_animation.html` (repo root)
 - **Total frames:** 51 (N=4 visual tree; N=100 used for pipeline pricing results)
 - **Used for:** Final presentation Slide 2; live classroom demo
+
+---
+
+---
+
+### aapl_crr_comparison.html
+
+<!-- Self-contained animated browser visualization of the CRR binomial tree
+     applied to two real AAPL contracts selected from the cross-model
+     comparison (Phase 8). Makes the Layer 1 math concrete and ties it
+     directly to the comparison finding. Both models are visible
+     simultaneously in the right-side info panel. -->
+
+- **Source script:** `make_aapl_crr_animation.py`
+- **Build command:**
+  ```
+  .venv/bin/python make_aapl_crr_animation.py
+  # or: make run-comparison
+  ```
+- **Output location:** `aapl_crr_comparison.html` (repo root)
+- **Contracts animated:**
+  - Contract A — herding regime, both models agree market overprices
+  - Contract B — normal regime, both models agree pricing is fair
+- **Frames:** ~28 (intro + 11 per contract + comparison)
+- **Controls:** Play/Pause, Step, Slider, Speed, Contract A/B jump buttons
+- **Used for:** Final presentation visualization; Phase 8 deliverable
+
+---
+
+### project/outputs/l1_vs_l2_comparison.png
+
+<!-- 4-panel cross-model comparison figure generated by layer1_vs_layer2.py.
+     Core visual deliverable for the research report's results section. -->
+
+- **Source script:** `project/layer1_vs_layer2.py`
+- **Build command:**
+  ```
+  .venv/bin/python project/layer1_vs_layer2.py
+  # or: make run-comparison
+  ```
+- **Output location:** `project/outputs/l1_vs_l2_comparison.png`
+- **Panels:**
+  1. Edge scatter (L1 vs L2), colored by regime, Pearson r annotated
+  2. Agreement breakdown — % contracts in each quadrant
+  3. Actual ITM rate by agreement zone (predictive content check)
+  4. Regime-conditional correlation (normal vs herding)
+- **Used for:** Research report Section 6 (Backtest Results); Phase 8 deliverable
 
 ---
 

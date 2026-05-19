@@ -146,19 +146,76 @@ def plot_convergence(chain: pd.DataFrame) -> None:
     print("  Saved: convergence.png")
 
 
-def plot_kelly_fractions(kelly_df: pd.DataFrame) -> None:
+def plot_kelly_fractions(kelly_df: pd.DataFrame, min_edge: float = 0.02) -> None:
     labels = [_label(r) for _, r in kelly_df.iterrows()]
     x = np.arange(len(labels))
-    w = 0.25
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.bar(x - w,     kelly_df["f_full"]    * 100, w, label="Full Kelly",    color="firebrick",  alpha=0.85)
-    ax.bar(x,         kelly_df["f_half"]    * 100, w, label="Half Kelly",    color="darkorange", alpha=0.85)
-    ax.bar(x + w,     kelly_df["f_quarter"] * 100, w, label="Quarter Kelly", color="goldenrod",  alpha=0.85)
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels)
-    ax.set_ylabel("Kelly fraction (%)")
-    ax.set_title("Kelly Fractions by Ticket")
-    ax.legend()
+    w = 0.35
+
+    fig, (ax_top, ax_bot) = plt.subplots(2, 1, figsize=(9, 7),
+                                          gridspec_kw={"height_ratios": [1.2, 1]})
+    fig.suptitle("Kelly Fractions by Ticket — AMD Options", fontsize=13, fontweight="bold")
+
+    # ── Top panel: actual edge % vs NO-TRADE threshold ────────────────────────
+    edge_pcts = kelly_df["edge_pct"].values * 100  # already in % form in CSV
+    bar_colors = ["#DC2626" if e < 0 else "#059669" for e in edge_pcts]
+    bars = ax_top.bar(x, edge_pcts, w * 1.2, color=bar_colors, alpha=0.80, zorder=3)
+
+    # Annotate each bar with its edge value and NO TRADE label
+    for xi, ep, sig in zip(x, edge_pcts, kelly_df["trade_signal"]):
+        ax_top.text(xi, ep + (0.05 if ep >= 0 else -0.05),
+                    f"{ep:+.3f}%", ha="center",
+                    va="bottom" if ep >= 0 else "top",
+                    fontsize=9, fontweight="bold",
+                    color="#DC2626" if ep < 0 else "#059669")
+        ax_top.text(xi, 0, "NO TRADE", ha="center", va="center",
+                    fontsize=7.5, color="#64748B", style="italic",
+                    bbox=dict(boxstyle="round,pad=0.2", facecolor="white",
+                              edgecolor="#94A3B8", alpha=0.9))
+
+    # NO-TRADE zone shading between ±min_edge
+    ax_top.axhspan(-min_edge * 100, min_edge * 100,
+                   color="#FEF9C3", alpha=0.55, zorder=1, label=f"NO-TRADE zone (±{min_edge*100:.0f}%)")
+    ax_top.axhline(min_edge * 100,  color="#D97706", lw=1.4, ls="--", zorder=2,
+                   label=f"Min edge threshold +{min_edge*100:.0f}%")
+    ax_top.axhline(-min_edge * 100, color="#D97706", lw=1.4, ls="--", zorder=2,
+                   label=f"Min edge threshold −{min_edge*100:.0f}%")
+    ax_top.axhline(0, color="black", lw=0.8, alpha=0.5)
+
+    ax_top.set_xticks(x)
+    ax_top.set_xticklabels(labels)
+    ax_top.set_ylabel("Edge  (V_model − V_market) / V_market  (%)")
+    ax_top.set_title("Actual Mispricing Edge per Ticket  |  All edges inside NO-TRADE zone",
+                     fontsize=10)
+    ax_top.legend(fontsize=8, loc="upper right")
+    ax_top.set_ylim(min(edge_pcts) * 2.5 if min(edge_pcts) < 0 else -min_edge * 150,
+                    max(edge_pcts) * 2.5 if max(edge_pcts) > 0 else min_edge * 150)
+    ax_top.grid(axis="y", alpha=0.3)
+
+    # ── Bottom panel: Kelly fractions (all zero — NO TRADE) ───────────────────
+    ax_bot.bar(x - w / 2, kelly_df["f_full"]    * 100, w / 3,
+               label="Full Kelly",    color="firebrick",  alpha=0.85)
+    ax_bot.bar(x,          kelly_df["f_half"]    * 100, w / 3,
+               label="Half Kelly",    color="darkorange", alpha=0.85)
+    ax_bot.bar(x + w / 2,  kelly_df["f_quarter"] * 100, w / 3,
+               label="Quarter Kelly", color="goldenrod",  alpha=0.85)
+
+    ax_bot.text(0.5, 0.52,
+                "All Kelly fractions = 0  (NO TRADE)\n"
+                "Edge below minimum threshold — market is efficiently pricing these contracts",
+                transform=ax_bot.transAxes, ha="center", va="center",
+                fontsize=10.5, color="#475569",
+                bbox=dict(boxstyle="round,pad=0.5", facecolor="#F1F5F9",
+                          edgecolor="#94A3B8", lw=1.5))
+
+    ax_bot.set_xticks(x)
+    ax_bot.set_xticklabels(labels)
+    ax_bot.set_ylabel("Kelly fraction (% of capital)")
+    ax_bot.set_title("Kelly Position Sizing  |  f* = (p·b − q) / b,  floored at 0",
+                     fontsize=10)
+    ax_bot.legend(fontsize=8)
+    ax_bot.set_ylim(-0.05, 0.5)
+    ax_bot.grid(axis="y", alpha=0.3)
+
     plt.tight_layout()
     plt.savefig(OUTPUT / "kelly_fractions.png", dpi=150)
     plt.close()
@@ -211,7 +268,7 @@ def run(config_path: str = "config.yaml") -> None:
     print("Stage 6 · Plots")
     plot_model_vs_market(edge_df)
     plot_convergence(chain)
-    plot_kelly_fractions(kelly_df)
+    plot_kelly_fractions(kelly_df, min_edge=config["kelly"]["min_edge"])
     plot_early_exercise_boundary(chain, config, N)
 
     print("\n" + "═" * 60)

@@ -14,7 +14,7 @@ endif
 POETRY  := $(VENV)$(SEP)poetry
 PYEXEC  := $(VENV)$(SEP)python
 
-.PHONY: setup run run-animation run-layer2 run-all clean
+.PHONY: setup run run-animation run-layer2 run-comparison run-all clean
 
 # ── setup: create venv, install poetry, install project deps ─────────
 setup:
@@ -48,17 +48,26 @@ run-layer2:
 	$(PYEXEC) project/bias_detector.py
 	@echo "--- Layer 2 Step 4: micro_cost ---"
 	$(PYEXEC) project/micro_cost.py
-	@echo "--- Layer 2 Step 5: calibration ---"
-	$(PYEXEC) project/calibration.py
-	@echo "--- Layer 2 Step 6: policy ---"
+	@echo "--- Layer 2 Step 5: policy ---"
 	$(PYEXEC) project/policy.py
-	@echo "--- Layer 2 Step 7: backtest ---"
+	@echo "--- Layer 2 Step 6: backtest ---"
 	$(PYEXEC) project/backtest.py
 	@echo ""
 	@echo "Layer 2 complete. Outputs in project/outputs/"
 
+# ── run-comparison: Layer 1 vs Layer 2 cross-model comparison (PLAN2.md §Phase 8) ─
+run-comparison:
+	@echo "--- Comparison Step 1: l1_vs_l2 plots ---"
+	$(PYEXEC) project/layer1_vs_layer2.py
+	@echo "--- Comparison Step 2: animated CRR simulation ---"
+	$(PYEXEC) make_aapl_crr_animation.py
+	@echo ""
+	@echo "Comparison complete."
+	@echo "  Plots  -> project/outputs/l1_vs_l2_comparison.png"
+	@echo "  HTML   -> aapl_crr_comparison.html"
+
 # ── run-all: Layer 1 (CRR pipeline) then animation then all Layer 2 ──
-run-all: run run-animation run-layer2
+run-all: run run-animation run-layer2 run-comparison
 
 # ── clean: remove the virtualenv ─────────────────────────────────────
 clean:
