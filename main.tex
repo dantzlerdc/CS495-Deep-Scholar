@@ -192,6 +192,12 @@ ensures that position sizing is proportional to the model's confidence
 in the detected mispricing, providing a formal mechanism for risk
 management under model uncertainty \citep{MacLean2010}.
 
+The persistence of the IV-RV spread as a detectable edge is consistent
+with documented anomalies in the efficient market literature
+\citep{Fama1970}---specifically the volatility risk premium that
+options markets systematically embed above and beyond what realized
+historical volatility would justify \citep{Carr2009}.
+
 \subsection{Scope and Boundaries}
 
 This project is scoped as follows. All four AMD contracts are treated
@@ -235,7 +241,7 @@ connections to the literature. Section~6 concludes.
 
 \subsection{Overview}
 
-This literature review surveys eight peer-reviewed and
+This literature review surveys nine peer-reviewed and
 practitioner-oriented papers on the Binomial Option Pricing Model
 (BOPM), focusing on applications directly relevant to the AMD options
 analysis conducted in this project. The papers span the foundational
@@ -464,6 +470,58 @@ options mispricing edge is interpretable as a fraction of available
 capital to commit to the trade---the formal basis for the
 position-sizing table generated in this project.
 
+\subsection{Efficient Market Hypothesis and Market Anomalies}
+
+The theoretical backdrop against which the project's mispricing signal
+must be evaluated is the Efficient Market Hypothesis (EMH), formalized
+by \citet{Fama1970} in a landmark review of theory and empirical
+evidence. Fama identified three forms of market efficiency:
+\textit{weak form} (prices reflect all historical price data);
+\textit{semi-strong form} (prices reflect all publicly available
+information); and \textit{strong form} (prices reflect all
+information, including private). Exchange-listed equity options, whose
+prices are publicly observable, fall under the semi-strong form: if
+markets are semi-strong efficient, no systematic mispricing of publicly
+traded options should persist.
+
+The volatility risk premium documented by \citet{Carr2009}---the
+consistent and substantial excess of implied volatility over realized
+volatility across equity markets---constitutes a well-documented
+anomaly under the semi-strong form. Financial economists have offered
+two interpretations. The first is behavioral overpricing: crowd demand
+for downside protection drives option premiums above fair value, a bias
+consistent with the favorite-longshot pattern identified by
+\citet{Thaler1988} and the implied-distribution distortions recovered
+by \citet{Jackwerth1996}. The second is rational risk compensation:
+option buyers are paying a fair premium for jump risk and liquidity
+risk that thirty-day realized volatility does not fully capture. The
+present project does not adjudicate between these explanations; it
+documents the spread and its persistence, and acknowledges the
+rational-compensation alternative as a limitation in
+Section~\ref{sec:limitations}.
+
+Samuelson's macro-inefficiency thesis provides additional theoretical
+grounding for the regime-dependent pattern reported in this project.
+Samuelson argued that markets can be micro-efficient---rationally
+pricing individual securities given the crowd's available
+information---while simultaneously macro-inefficient at the aggregate
+level, subject to systematic biases driven by coordinated behavioral
+demand. This distinction maps directly onto the herding regime
+classified by the crowd bias detector: individual option prices may be
+rational given the crowd's information set, yet the aggregate demand
+for protection during high-volatility periods systematically inflates
+implied volatility above the realized volatility that an independent
+no-arbitrage model uses as its signal \citep{Fama1970}.
+
+These theoretical considerations ground the project's edge signal in
+established financial economics rather than claiming a naive violation
+of market efficiency. The persistence of the IV-RV spread, confirmed
+independently by both the mathematical (Layer~1) and empirical
+(Layer~2) models specifically in the herding regime, is interpreted as
+consistent with Samuelson's macro-inefficiency and the behavioral
+anomaly literature \citep{Carr2009, Jackwerth1996}---not as a
+refutation of the EMH in its entirety.
+
 \subsection{Synthesis}
 
 Several themes emerge consistently across the reviewed literature and
@@ -496,6 +554,16 @@ price---the Kelly Criterion provides the mathematically optimal
 position size. Fractional Kelly is the practical recommendation under
 model uncertainty, which is the default condition for any
 single-model options pricer.
+
+\textit{Efficient market bounds.} \citet{Fama1970} establishes that
+semi-strong market efficiency would eliminate any persistent, risk-free
+pricing edge in publicly traded options. The IV-RV spread underlying
+both the Layer~1 and Layer~2 signals is a well-documented anomaly in
+the EMH literature \citep{Carr2009}. Samuelson's macro-inefficiency
+thesis provides the most parsimonious resolution: markets can be
+individually rational yet exhibit systematic aggregate bias during
+herding events---precisely the regime in which this project's
+cross-model correlation is strongest ($r = 0.413$, $p < 0.001$).
 
 Together, these contributions define a complete pipeline from raw
 market data through theoretical pricing to disciplined, risk-controlled
@@ -837,6 +905,12 @@ regime classifier:
         increases indicate crowd-driven demand for options.
 \end{itemize}
 
+This classifier operationalizes the behavioral finance critique of the
+semi-strong form of the Efficient Market Hypothesis \citep{Fama1970}:
+in the herding regime, crowd demand for options protection inflates
+implied volatility above realized volatility in a way that a
+Fama-efficient market would not permit to persist.
+
 The regime label conditions the minimum edge threshold: in the
 \textsc{normal} regime, the threshold is 2\%; in the
 \textsc{herding} regime, it is raised to 8\% (high-conviction
@@ -1042,6 +1116,19 @@ this project's findings:
         comparison only. This project must not be interpreted
         as a recommendation to trade options or prediction
         market contracts.
+
+  \item \textbf{Rational risk compensation alternative.}  The
+        IV-RV spread that drives the edge signal may reflect
+        rational compensation for jump risk and liquidity risk
+        rather than behavioral mispricing \citep{Fama1970}. Under
+        this interpretation, option buyers are not making a
+        cognitive error but paying a fair premium for tail
+        protection that realized volatility does not price.
+        The project does not adjudicate between the behavioral
+        and rational-compensation explanations; it documents
+        the spread and its persistence, and acknowledges this
+        as a fundamental ambiguity in interpreting any
+        IV-based edge signal.
 \end{enumerate}
 
 %============================================================
@@ -1354,7 +1441,11 @@ and where the walk-forward backtest generates its largest gains
 (Section~4.7). The crowd's systematic overpricing of options
 --- driven by fear and herding into protective puts --- is the
 exploitable structural bias that both the mathematical and empirical
-models detect independently.
+models detect independently. That this signal is concentrated in
+herding episodes rather than uniformly present is consistent with
+Samuelson's macro-inefficiency thesis \citep{Fama1970}: markets are
+micro-efficient on average, but subject to systematic aggregate
+mispricing under coordinated behavioral demand shocks.
 
 %------------------------------------------------------------
 \subsection{Cross-Model Comparison: Mathematical vs.\ Empirical
@@ -1464,7 +1555,13 @@ validation --- neither model designed to agree with the other ---
 constitutes the strongest result of the project and is the options
 market analog of the crowd bias cross-validation methodology
 described by \citet{Wolfers2004} and applied quantitatively by
-\citet{Carr2009}.
+\citet{Carr2009}. The elevated cross-model correlation during the
+herding regime ($r = 0.413$ vs.\ $r = 0.013$ in the normal regime)
+is consistent with Samuelson's macro-inefficiency argument
+\citep{Fama1970}: the behavioral anomaly amplifies both the volatility
+risk premium (Layer~1) and the ML-estimated ITM probability bias
+(Layer~2) simultaneously, producing agreement precisely when the crowd
+is most systematically biased.
 
 %------------------------------------------------------------
 \subsection{Walk-Forward Backtest Results
