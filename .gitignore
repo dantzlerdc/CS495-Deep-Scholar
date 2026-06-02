@@ -24,3 +24,14 @@ project/outputs/*.pkl
 # Build outputs (regenerate with make run-all)
 project/outputs/*.png
 project/outputs/*.csv
+
+# LaTeX / Beamer auxiliary files (regenerated on every xelatex run)
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
