@@ -14,7 +14,7 @@ endif
 POETRY  := $(VENV)$(SEP)poetry
 PYEXEC  := $(VENV)$(SEP)python
 
-.PHONY: setup run run-animation run-layer2 run-comparison run-all clean
+.PHONY: setup run run-animation run-layer2 run-comparison run-all users-guide clean
 
 # ── setup: create venv, install poetry, install project deps ─────────
 setup:
@@ -68,6 +68,19 @@ run-comparison:
 
 # ── run-all: Layer 1 (CRR pipeline) then animation then all Layer 2 ──
 run-all: run run-animation run-layer2 run-comparison
+
+# ── users-guide: build the User's Guide PDF from Markdown source ─────
+#   Requires: pandoc + a LaTeX engine (xelatex via MacTeX/TeX Live).
+#   Source: users_guide.md
+#   Output: Users-Guide-CRR-Binomial-Pricing-Calculator.pdf (consumed
+#           by the User's Guide tab of crr_binomial_pricing_calculator.py).
+users-guide:
+	pandoc users_guide.md \
+	    --from markdown \
+	    --pdf-engine=xelatex \
+	    --output Users-Guide-CRR-Binomial-Pricing-Calculator.pdf
+	@echo ""
+	@echo "Built Users-Guide-CRR-Binomial-Pricing-Calculator.pdf"
 
 # ── clean: remove the virtualenv ─────────────────────────────────────
 clean:
