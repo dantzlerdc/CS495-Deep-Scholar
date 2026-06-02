@@ -1,0 +1,11 @@
+# Streamlit theme — CS495 Capstone presentation palette
+# Light main page (white), gray sidebar, skyblue widget accents.
+# Matplotlib figures stay dark — they set their own background in the script.
+
+[theme]
+base                       = "light"     # white page, dark text
+primaryColor               = "#3A7BD5"   # skyblue — slider tracks, focus, accents
+backgroundColor            = "#FFFFFF"   # main page background (white, as before)
+secondaryBackgroundColor   = "#3F454C"   # sidebar background (gray)
+textColor                  = "#1A1A2E"   # dark navy — body text on white page
+font                       = "sans serif"
