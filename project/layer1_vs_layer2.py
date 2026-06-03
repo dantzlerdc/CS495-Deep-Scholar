@@ -129,15 +129,15 @@ def get_regime_map(df):
 REGIME_COLORS = {"herding": "#DC2626", "normal": "#2563EB", "unknown": "#9CA3AF"}
 
 def plot_comparison(combined):
-    fig, axes = plt.subplots(2, 2, figsize=(14, 11))
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
     fig.suptitle(
         "Layer 1 (CRR) vs Layer 2 (XGBoost) — Cross-Model Comparison\n"
         "AAPL Options 2016-2020 · Same 3,000 Contracts",
-        fontsize=13, fontweight="bold", y=0.98
+        fontsize=13, fontweight="bold", y=0.99
     )
 
     # ── Panel 1: Edge Scatter ─────────────────────────────────────────────────
-    ax = axes[0][0]
+    ax = axes[0]
     for regime, grp in combined.groupby("regime"):
         c = REGIME_COLORS.get(regime, REGIME_COLORS["unknown"])
         ax.scatter(grp["edge_L1"], grp["edge_L2"],
@@ -155,43 +155,24 @@ def plot_comparison(combined):
     r, pval = pearsonr(combined["edge_L1"].clip(-2, 2),
                        combined["edge_L2"].clip(-1, 1))
     ax.text(0.03, 0.97, f"Pearson r = {r:.3f}  (p={pval:.2e})",
-            transform=ax.transAxes, va="top", fontsize=8,
-            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8))
+            transform=ax.transAxes, va="top", fontsize=9,
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.85))
 
-    ax.text(-0.8, -0.55, "Q3\nBoth: SELL", fontsize=7, color="#991B1B",
+    ax.text(-0.8, -0.55, "Q3\nBoth: SELL", fontsize=8, color="#991B1B",
             ha="center", fontweight="bold")
-    ax.text(0.35, 0.55, "Q1\nBoth: BUY", fontsize=7, color="#065F46",
+    ax.text(0.35, 0.55, "Q1\nBoth: BUY", fontsize=8, color="#065F46",
             ha="center", fontweight="bold")
 
     ax.set_xlim(*xlim)
     ax.set_ylim(*ylim)
-    ax.set_xlabel("Layer 1 Edge  (V_model_rv − V_market) / V_market", fontsize=9)
-    ax.set_ylabel("Layer 2 Edge  p_independent − q_market", fontsize=9)
-    ax.set_title("Panel 1 — Edge Scatter by Regime", fontsize=10, fontweight="bold")
-    ax.legend(fontsize=8, markerscale=2)
+    ax.set_xlabel("Layer 1 Edge  (V_model_rv − V_market) / V_market", fontsize=10)
+    ax.set_ylabel("Layer 2 Edge  p_independent − q_market", fontsize=10)
+    ax.set_title("Panel 1 — Edge Scatter by Regime", fontsize=11, fontweight="bold")
+    ax.legend(fontsize=9, markerscale=2)
     ax.grid(alpha=0.25)
 
-    # ── Panel 2: Agreement Breakdown ─────────────────────────────────────────
-    ax = axes[0][1]
-    q3   = ((combined["edge_L1"] < 0) & (combined["edge_L2"] < 0)).sum()
-    q1   = ((combined["edge_L1"] > 0) & (combined["edge_L2"] > 0)).sum()
-    dis  = len(combined) - q3 - q1
-    n    = len(combined)
-    cats = ["Q3: Both SELL\n(market overprices)", "Q1: Both BUY\n(market underprices)",
-            "Disagree\n(mixed signal)"]
-    vals = [q3 / n * 100, q1 / n * 100, dis / n * 100]
-    cols = ["#DC2626", "#059669", "#9CA3AF"]
-    bars = ax.bar(cats, vals, color=cols, alpha=0.8, edgecolor="white")
-    for bar, v in zip(bars, vals):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5,
-                f"{v:.1f}%", ha="center", va="bottom", fontsize=9, fontweight="bold")
-    ax.set_ylabel("% of Contracts", fontsize=9)
-    ax.set_title("Panel 2 — Agreement Breakdown", fontsize=10, fontweight="bold")
-    ax.set_ylim(0, max(vals) * 1.2)
-    ax.grid(axis="y", alpha=0.3)
-
-    # ── Panel 3: Actual ITM Rate by Zone ─────────────────────────────────────
-    ax = axes[1][0]
+    # ── Panel 2: Actual ITM Rate by Zone ─────────────────────────────────────
+    ax = axes[1]
     itm_col = None
     for cand in ("call_itm", "put_itm", "itm"):
         if cand in combined.columns:
@@ -213,52 +194,19 @@ def plot_comparison(combined):
         zone_cols  = ["#DC2626", "#059669", "#9CA3AF"]
         bars = ax.bar(zone_names, itm_rates, color=zone_cols, alpha=0.8, edgecolor="white")
         for bar, rate, cnt in zip(bars, itm_rates, counts):
-            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.4,
                     f"{rate:.1f}%\n(n={cnt:,})", ha="center", va="bottom",
-                    fontsize=8, fontweight="bold")
-        ax.set_ylabel("Actual ITM Rate (%)", fontsize=9)
-        ax.set_title("Panel 3 — Actual ITM Rate by Agreement Zone\n"
+                    fontsize=9, fontweight="bold")
+        ax.set_ylabel("Actual ITM Rate (%)", fontsize=10)
+        ax.set_title("Panel 2 — Actual ITM Rate by Agreement Zone\n"
                      "(lower = market was overpriced, signal has predictive content)",
-                     fontsize=9, fontweight="bold")
+                     fontsize=10, fontweight="bold")
         ax.set_ylim(0, max(itm_rates) * 1.25)
         ax.grid(axis="y", alpha=0.3)
     else:
         ax.text(0.5, 0.5, "ITM outcome column not available\nin this sample subset",
                 ha="center", va="center", transform=ax.transAxes, fontsize=10)
-        ax.set_title("Panel 3 — Actual ITM Rate by Zone", fontsize=10, fontweight="bold")
-
-    # ── Panel 4: Regime-Conditional Correlation ───────────────────────────────
-    ax = axes[1][1]
-    regimes  = ["normal", "herding"]
-    r_vals   = []
-    p_vals   = []
-    n_vals   = []
-    for reg in regimes:
-        grp = combined[combined["regime"] == reg]
-        if len(grp) >= 10:
-            rv, pv = pearsonr(grp["edge_L1"].clip(-2, 2),
-                              grp["edge_L2"].clip(-1, 1))
-        else:
-            rv, pv = 0.0, 1.0
-        r_vals.append(rv)
-        p_vals.append(pv)
-        n_vals.append(len(grp))
-
-    reg_cols = [REGIME_COLORS["normal"], REGIME_COLORS["herding"]]
-    bars = ax.bar(regimes, r_vals, color=reg_cols, alpha=0.8, edgecolor="white")
-    for bar, rv, pv, nv in zip(bars, r_vals, p_vals, n_vals):
-        ax.text(bar.get_x() + bar.get_width() / 2,
-                bar.get_height() + (0.005 if rv >= 0 else -0.03),
-                f"r={rv:.3f}\np={pv:.3e}\nn={nv:,}",
-                ha="center", va="bottom", fontsize=8, fontweight="bold")
-
-    ax.axhline(0, color="black", lw=0.8, ls="--")
-    ax.set_ylabel("Pearson r (L1 edge vs L2 edge)", fontsize=9)
-    ax.set_title("Panel 4 — Regime-Conditional Correlation\n"
-                 "(higher in herding = crowd bias amplifies both signals)",
-                 fontsize=9, fontweight="bold")
-    ax.set_ylim(min(r_vals) - 0.15, max(r_vals) + 0.15)
-    ax.grid(axis="y", alpha=0.3)
+        ax.set_title("Panel 2 — Actual ITM Rate by Zone", fontsize=11, fontweight="bold")
 
     plt.tight_layout()
     out_path = os.path.join(OUTPUT_DIR, "l1_vs_l2_comparison.png")

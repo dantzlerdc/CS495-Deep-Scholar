@@ -813,6 +813,230 @@ def render_comparison_summary(contract_A, contract_B):
     return fig_to_b64(fig)
 
 
+# ── Tooltip glossary (keyed by frame index as string) ─────────────────────────
+
+_PROFILE_TERMS = [
+    {"term": "S (Underlying)",  "def": "Current AAPL stock price at the quote date. S₀ is the root node of the binomial tree — all future stock paths branch from here."},
+    {"term": "K (Strike)",      "def": "The agreed exercise price. A put is In-The-Money (ITM) when S < K, meaning the holder can sell stock at K above the current market price."},
+    {"term": "DTE",             "def": "Days To Expiration — calendar days remaining until the option expires and any unexercised value is lost."},
+    {"term": "T (Time)",        "def": "Time to expiry in years (= DTE ÷ 365). The CRR model divides T into N discrete steps of length Δt = T/N."},
+    {"term": "RV30 (σ)",   "def": "30-day Realized Volatility — annualized standard deviation of daily log-returns over the past 30 days. Used as σ in CRR instead of implied vol."},
+    {"term": "IV (Implied Vol)","def": "Implied Volatility — the market’s forward-looking vol embedded in the option premium. Often inflated above RV30 in herding regimes, signaling crowd overbidding."},
+    {"term": "V_market",        "def": "Option market price = (bid + ask) ÷ 2. This is the actual premium a buyer pays — the ground-truth price the CRR model is compared against."},
+    {"term": "Risk-free r",     "def": "Risk-free interest rate used to discount future payoffs. Set to 2% — approximate average 3-month T-bill rate over 2016–2020."},
+    {"term": "CRR",             "def": "Cox-Ross-Rubinstein (1979) binomial lattice model. Builds a recombining stock-price tree forward, then backward-inducts option values accounting for early exercise."},
+    {"term": "HERDING REGIME",  "def": "Market condition where ATM IV significantly exceeds RV30. Indicates crowd overbidding — option premiums are above their statistical fair value."},
+    {"term": "NORMAL REGIME",   "def": "Market condition where IV ≈ RV. Options are fairly priced; CRR and XGBoost both expect minimal exploitable edge."},
+]
+
+_RESULT_TERMS = [
+    {"term": "V_market",        "def": "Actual market premium (bid–ask midpoint) — what a trader paid for this contract."},
+    {"term": "V_model_rv",      "def": "CRR fair-value estimate using RV30 as σ with N=50 steps. The model’s view of what the option is theoretically worth."},
+    {"term": "Layer 1 edge",    "def": "(V_model_rv − V_market) / V_market. Negative = market charges more than fair value (overpriced). The core Layer 1 trading signal."},
+    {"term": "Layer 2 edge",    "def": "XGBoost signal = p_independent − q_market. ML-based estimate of mispricing using historical feature patterns."},
+    {"term": "p_independent",   "def": "XGBoost’s estimated probability this put expires ITM. Trained on 4 years of AAPL option outcomes — independent of current market price."},
+    {"term": "q_market",        "def": "Market-implied ITM probability = put mid-price ÷ strike. Reflects the crowd’s consensus on ITM likelihood."},
+    {"term": "Agreement",       "def": "BOTH SELL: CRR and XGBoost both detect overpricing — strongest signal. MIXED: models disagree — no trade recommended."},
+    {"term": "Regime",          "def": "HERDING: IV ≫ RV, crowd overbids, both models detect edge. NORMAL: IV ≈ RV, efficient pricing, minimal edge."},
+]
+
+_SUMMARY_TERMS = [
+    {"term": "V_model_rv",      "def": "CRR fair value (N=50, σ=RV30). Compared to V_market to compute Layer 1 edge."},
+    {"term": "edge_L1",         "def": "(V_model_rv − V_market) / V_market. Negative = CRR finds market overprices this option."},
+    {"term": "p_indep",         "def": "XGBoost-estimated ITM probability. Trained on historical AAPL outcomes, independent of market prices."},
+    {"term": "q_market",        "def": "Market-implied ITM probability = put premium ÷ strike. The crowd’s consensus on ITM odds."},
+    {"term": "edge_L2",         "def": "p_independent − q_market. Negative = market overestimates ITM probability relative to historical base rates."},
+    {"term": "HERDING REGIME",  "def": "Crowd-driven IV premium over RV. Both CRR and XGBoost detect systematic overpricing; strongest trading signal when both agree."},
+    {"term": "NORMAL REGIME",   "def": "IV ≈ RV; efficient pricing. Both models find minimal edge — NO TRADE across both layers."},
+]
+
+# Populated in main() once frame indices are known
+GLOSSARY = {}
+
+# ── Image hotspot overlays (% coordinates over the rendered PNG) ───────────────
+# l/t/w/h are left/top/width/height as % of the displayed image size.
+# Slides 0 & 14: render_phase0  (figsize 13×7, GridSpec 3:0.1:1:0.05, tight_layout)
+# Slides 13 & 27: render_result  (figsize 13×7, subplots_adjust l=0.02 r=0.99 t=0.96 b=0.06)
+# Slide 28: render_comparison_summary (figsize 14×7, subplots 1×2, tight_layout)
+
+_PROFILE_PARAMS = [
+    # Parameter rows — narrow width (label text only)
+    {"l":  8, "t": 20, "w": 18, "h":  6,
+     "label": "Quote Date",
+     "tip": "The calendar date when this option contract's market data was captured from the exchange."},
+    {"l":  8, "t": 26, "w": 18, "h":  6,
+     "label": "Underlying (S)",
+     "tip": "Current AAPL stock price at the quote date. S0 is the root node of the CRR binomial tree — all future price paths branch from this starting value."},
+    {"l":  8, "t": 32, "w": 18, "h":  6,
+     "label": "Strike (K)",
+     "tip": "The agreed exercise price of the put option. The put is In-The-Money (ITM) when the stock price S falls below K — the holder profits by selling stock at K above the current market price."},
+    {"l":  8, "t": 38, "w": 18, "h":  6,
+     "label": "DTE (Days To Expiration)",
+     "tip": "Calendar days remaining until the option contract expires. After expiry, any unexercised intrinsic value is permanently lost."},
+    {"l":  8, "t": 44, "w": 18, "h":  6,
+     "label": "Time (T)",
+     "tip": "Time to expiry expressed in years (= DTE / 365). The CRR model divides T into N discrete time steps of length dt = T/N."},
+    {"l":  8, "t": 50, "w": 18, "h":  5,
+     "label": "RV30 — sigma input to CRR",
+     "tip": "30-day Realized Volatility: annualized standard deviation of AAPL daily log-returns over the past 30 days. Used as sigma in the CRR formula instead of implied vol, so the model's fair value is independent of the market price being tested."},
+    {"l":  8, "t": 55, "w": 18, "h":  5,
+     "label": "IV (Implied Volatility)",
+     "tip": "Implied Volatility backed out from the market option price. When IV is significantly above RV30, the market is pricing in more uncertainty than history justifies — a hallmark of the herding regime."},
+    {"l":  8, "t": 60, "w": 18, "h":  5,
+     "label": "V_market",
+     "tip": "Market price of the option = (bid + ask) / 2. The actual premium a buyer pays — the ground-truth price the CRR model's fair value estimate is tested against."},
+    {"l":  8, "t": 65, "w": 18, "h":  5,
+     "label": "Risk-free r",
+     "tip": "Risk-free interest rate used to discount future option payoffs to present value. Fixed at 2% — the approximate average 3-month T-bill rate over the 2016-2020 study period."},
+    {"l":  8, "t": 70, "w": 18, "h":  5,
+     "label": "CRR Steps (N)",
+     "tip": "Number of time steps in the binomial tree. N=50 gives accurate pricing (finer lattice). N=5 is used for on-screen visualization so the tree fits readably."},
+]
+
+# Title hotspot for slide 0 — herding regime (centered title, ~44% wide in image)
+_PROFILE_SPOTS_A = [
+    {"l": 12, "t":  5, "w": 44, "h":  8, "flip": True,
+     "label": "Herding Regime",
+     "tip": "HERDING REGIME: Implied Volatility (IV) significantly exceeds 30-day Realized Volatility (RV30). Crowd participants overbid option premiums — paying for more uncertainty than history justifies. Both CRR and XGBoost models detect systematic overpricing, producing the strongest combined BOTH SELL signal."},
+] + _PROFILE_PARAMS
+
+# Title hotspot for slide 14 — normal regime (shorter title, ~40% wide in image)
+_PROFILE_SPOTS_B = [
+    {"l": 14, "t":  5, "w": 40, "h":  8, "flip": True,
+     "label": "Normal Regime",
+     "tip": "NORMAL REGIME — FAIR PRICING: Implied Volatility (IV) approximately equals 30-day Realized Volatility (RV30). The market prices options efficiently — premiums reflect historical uncertainty without systemic overbidding. Both CRR and XGBoost find minimal detectable edge. This is a NO TRADE condition."},
+] + _PROFILE_PARAMS
+
+_RESULT_SPOTS = [
+    # Bar x-axis label hotspots — positioned at the bottom of the chart where the
+    # text labels "V_market" and "V_model_rv" appear (image_t ≈ 37-44%).
+    # Left label (V_market) at image_l ≈ 14-28%; right label (V_model_rv) at ≈ 42-56%.
+    {"l": 14, "t": 37, "w": 14, "h":  7,
+     "label": "V_market",
+     "tip": "V_market: the actual market option price = (bid + ask) / 2. The real premium paid by a buyer for this AAPL put contract — the ground-truth price that the CRR model's fair value is tested against."},
+    {"l": 42, "t": 37, "w": 14, "h":  7,
+     "label": "V_model_rv",
+     "tip": "(CRR Model Price using Realized Volatility): fair value of this put option computed by the Cox-Ross-Rubinstein binomial tree using RV30 (30-day realized volatility) as sigma instead of implied volatility. Using RV30 makes the model price fully independent of the market price being tested — a true out-of-sample estimate of fair value."},
+    # Text rows — computed from figure geometry: step=3.9% per row in image space.
+    # Rows at image_t: L1edge≈51, L1interp≈55, L2edge≈59, p_indep≈63, q_mkt≈67,
+    #                  L2interp≈71, Agreement≈75, Regime≈78.  h=4 keeps each zone tight.
+    {"l":  5, "t": 50, "w": 14, "h":  4,
+     "label": "Layer 1 edge",
+     "tip": "(V_model_rv - V_market) / V_market. Negative = market charges MORE than CRR fair value (overpriced). Positive = market underprices. The primary Layer 1 CRR trading signal."},
+    {"l":  5, "t": 54, "w": 14, "h":  4,
+     "label": "Layer 1 Interpretation",
+     "tip": "OVERPRICES: market premium exceeds CRR fair value — sell signal. UNDERPRICES: market charges below fair value — buy signal."},
+    {"l":  5, "t": 58, "w": 14, "h":  4,
+     "label": "Layer 2 edge",
+     "tip": "XGBoost ML signal = p_independent - q_market. An independent model-based estimate of mispricing using historical AAPL option features. Negative = crowd overbids relative to model."},
+    {"l":  5, "t": 62, "w": 14, "h":  4,
+     "label": "p_independent",
+     "tip": "XGBoost classifier's estimated probability this put expires In-The-Money. Trained on 4 years of historical AAPL option outcomes — fully independent of current market prices."},
+    {"l":  5, "t": 66, "w": 14, "h":  4,
+     "label": "q_market",
+     "tip": "Market-implied ITM probability = put mid-price / strike. Reflects the collective crowd consensus on whether this option will expire in-the-money."},
+    {"l":  5, "t": 70, "w": 14, "h":  4,
+     "label": "Layer 2 Interpretation",
+     "tip": "OVERPRICES: p_indep is below q_market — crowd overestimates ITM chance. UNDERPRICES: p_indep exceeds q_market — crowd underestimates ITM chance."},
+    {"l":  5, "t": 74, "w": 14, "h":  3,
+     "label": "Signal Agreement",
+     "tip": "BOTH SELL: CRR and XGBoost both detect overpricing — strongest combined signal. BOTH BUY: both detect underpricing. MIXED: models disagree — no trade recommended."},
+    {"l":  5, "t": 77, "w": 14, "h":  4,
+     "label": "Regime",
+     "tip": "HERDING: IV significantly exceeds RV30 — crowd overbidding detected by both models. NORMAL: IV ≈ RV30 — efficient pricing, minimal detectable edge across both layers."},
+]
+
+# Slide 28 layout: figsize 14×7, 1×2 subplots, tight_layout + suptitle.
+# Suptitle pushes axes top to ~fig_y 0.82. Each panel is ~50% of image width.
+# Rows start at axes_y=0.80, step −0.058 → image spacing ≈5% per row.
+# Rows 1-4 (Date/S/K/DTE) get no hotspot — they are identifying info only.
+# Rows 5-10 (V_market…edge_L2) mapped to image_t ≈ 50-75%.
+# Left panel label text at image_x ≈ 6%, right panel at ≈56%.
+_SUMMARY_SPOTS = [
+    # Left panel — Contract A (herding)
+    # Header: "Contract A" + "HERDING REGIME" at image_t≈12% and 18%.
+    # Width narrowed to label text width only (~22% centered at ~24%).
+    {"l": 13, "t": 10, "w": 22, "h": 12,
+     "label": "Contract A — Herding Regime",
+     "tip": "HERDING REGIME: IV significantly exceeds RV30. Crowd overbidding inflates premiums above CRR fair value. Both models detect systematic overpricing — the strongest trading signal."},
+    # Identifying rows — image_t: Date≈27, S≈32, K≈38, DTE≈43  (step≈5.2%)
+    {"l":  2, "t": 26, "w": 10, "h":  5,
+     "label": "Date (A)",
+     "tip": "The calendar date when Contract A's market data was captured from the exchange."},
+    {"l":  2, "t": 31, "w": 10, "h":  5,
+     "label": "Underlying S (A)",
+     "tip": "AAPL stock price at the Contract A quote date. S₀ is the root node of the CRR binomial tree — all future price paths branch from this value."},
+    {"l":  2, "t": 36, "w": 10, "h":  5,
+     "label": "Strike K (A)",
+     "tip": "Exercise price of Contract A put. The put is In-The-Money (ITM) when AAPL stock price S falls below K — holder profits by selling at K above the current market price."},
+    {"l":  2, "t": 41, "w": 10, "h":  5,
+     "label": "DTE (A)",
+     "tip": "Days To Expiration for Contract A. After expiry, any unexercised intrinsic value is permanently lost."},
+    # Trading signal rows — confirmed correct at these positions
+    {"l":  2, "t": 45, "w": 14, "h":  5,
+     "label": "V_market (A)",
+     "tip": "Market price of Contract A put (bid-ask midpoint). In herding regime, this is inflated above CRR fair value."},
+    {"l":  2, "t": 50, "w": 14, "h":  5,
+     "label": "V_model_rv (A)",
+     "tip": "CRR fair value using RV30 as sigma with N=50 steps. Represents the model's estimate of what Contract A is truly worth."},
+    {"l":  2, "t": 55, "w": 14, "h":  5,
+     "label": "edge_L1 (A)",
+     "tip": "(V_model_rv - V_market) / V_market. Strongly negative in herding regime — market significantly overprices relative to CRR fair value."},
+    {"l":  2, "t": 60, "w": 14, "h":  5,
+     "label": "p_indep (A)",
+     "tip": "XGBoost-estimated ITM probability for Contract A. Based on historical AAPL patterns — independent of current market prices."},
+    {"l":  2, "t": 65, "w": 14, "h":  5,
+     "label": "q_market (A)",
+     "tip": "Market-implied ITM probability for Contract A = put premium / strike. In herding regime, crowd inflates this above historical base rates."},
+    {"l":  2, "t": 70, "w": 14, "h":  5,
+     "label": "edge_L2 (A)",
+     "tip": "p_independent - q_market for Contract A. Negative = crowd overestimates ITM chance. Combined with negative edge_L1: strong BOTH SELL signal."},
+    # Right panel — Contract B (normal)
+    # Header centered at image_l≈75%; width narrowed same as left panel.
+    {"l": 63, "t": 10, "w": 22, "h": 12,
+     "label": "Contract B — Normal Regime",
+     "tip": "NORMAL REGIME: IV approximately equals RV30. Efficient pricing — both CRR and XGBoost find minimal edge. NO TRADE condition for this contract."},
+    {"l": 52, "t": 26, "w": 10, "h":  5,
+     "label": "Date (B)",
+     "tip": "The calendar date when Contract B's market data was captured from the exchange."},
+    {"l": 52, "t": 31, "w": 10, "h":  5,
+     "label": "Underlying S (B)",
+     "tip": "AAPL stock price at the Contract B quote date. Normal regime — IV ≈ RV30, indicating efficient pricing at this moment."},
+    {"l": 52, "t": 36, "w": 10, "h":  5,
+     "label": "Strike K (B)",
+     "tip": "Exercise price of Contract B put. Near-ATM in the normal regime — market prices reflect historical base rates accurately."},
+    {"l": 52, "t": 41, "w": 10, "h":  5,
+     "label": "DTE (B)",
+     "tip": "Days To Expiration for Contract B. Longer DTE than Contract A, reflecting a different market moment."},
+    {"l": 52, "t": 45, "w": 14, "h":  5,
+     "label": "V_market (B)",
+     "tip": "Market price of Contract B put (bid-ask midpoint). Close to CRR fair value in normal regime."},
+    {"l": 52, "t": 50, "w": 14, "h":  5,
+     "label": "V_model_rv (B)",
+     "tip": "CRR fair value for Contract B using RV30 as sigma, N=50 steps. Near V_market in normal regime — confirms efficient pricing."},
+    {"l": 52, "t": 55, "w": 14, "h":  5,
+     "label": "edge_L1 (B)",
+     "tip": "(V_model_rv - V_market) / V_market for Contract B. Near zero in normal regime — market aligns with CRR fair value."},
+    {"l": 52, "t": 60, "w": 14, "h":  5,
+     "label": "p_indep (B)",
+     "tip": "XGBoost-estimated ITM probability for Contract B. Should closely match q_market in a normal pricing regime."},
+    {"l": 52, "t": 65, "w": 14, "h":  5,
+     "label": "q_market (B)",
+     "tip": "Market-implied ITM probability for Contract B. Reflects fair crowd consensus in normal conditions."},
+    {"l": 52, "t": 70, "w": 14, "h":  5,
+     "label": "edge_L2 (B)",
+     "tip": "p_independent - q_market for Contract B. Near zero — ML model and market agree on ITM probability. Confirms NO TRADE."},
+]
+
+HOTSPOTS = {
+    "0":  _PROFILE_SPOTS_A,
+    "13": _RESULT_SPOTS,
+    "14": _PROFILE_SPOTS_B,
+    "27": _RESULT_SPOTS,
+    "28": _SUMMARY_SPOTS,
+}
+
+
 # ── HTML assembly ─────────────────────────────────────────────────────────────
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -827,8 +1051,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           color: #38BDF8; margin: 0; }}
   .subtitle {{ text-align: center; font-size: 0.78rem; color: #94A3B8;
                margin-bottom: 8px; }}
-  #frame-img {{ display: block; max-width: 96%; margin: 0 auto 6px;
-                border-radius: 6px; border: 1px solid #1E293B; }}
+  #img-wrapper {{ position: relative; max-width: 96%; margin: 0 auto 6px;
+                  display: block; }}
+  #frame-img   {{ display: block; width: 100%;
+                  border-radius: 6px; border: 1px solid #1E293B; }}
+  #hotspot-layer {{ position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+                    pointer-events: none; }}
+  .hotspot {{ position: absolute; cursor: help; pointer-events: auto; }}
+  .htip {{ display: none; position: absolute; bottom: 105%; left: 0;
+           background: #0F172A; border: 1px solid #38BDF8; color: #E2E8F0;
+           padding: 8px 12px; border-radius: 7px; font-size: 0.74rem;
+           width: 280px; z-index: 500; line-height: 1.6;
+           pointer-events: none; white-space: normal; }}
+  .htip strong {{ display: block; margin-bottom: 4px; color: #38BDF8;
+                  font-size: 0.77rem; }}
+  .hotspot:hover .htip {{ display: block; }}
   .controls  {{ display: flex; align-items: center; justify-content: center;
                 gap: 8px; padding: 6px 12px; flex-wrap: wrap; }}
   button {{ background: #1E40AF; color: white; border: none; border-radius: 5px;
@@ -851,7 +1088,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   Both models evaluated on the same real AAPL put options
 </div>
 
-<img id="frame-img" src="" alt="animation frame">
+<div id="img-wrapper">
+  <img id="frame-img" src="" alt="animation frame">
+  <div id="hotspot-layer"></div>
+</div>
 
 <div class="controls">
   <button onclick="prevFrame()">&#9664; Prev</button>
@@ -874,19 +1114,39 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </div>
 
 <script>
-const frames  = {frames_json};
-const labels  = {labels_json};
-let current   = 0;
-let playing   = false;
-let timer     = null;
-let delay     = 1200;
+const frames   = {frames_json};
+const labels   = {labels_json};
+const hotspots = {hotspots_json};
+let current    = 0;
+let playing    = false;
+let timer      = null;
+let delay      = 1200;
+
+function hesc(s) {{
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}}
+
+function updateHotspots(i) {{
+  var layer = document.getElementById('hotspot-layer');
+  var spots = hotspots[String(i)] || [];
+  var html = '';
+  for (var j = 0; j < spots.length; j++) {{
+    var s = spots[j];
+    var tipStyle = s.flip ? ' style="bottom:auto;top:110%;"' : '';
+    html += '<div class="hotspot" style="left:' + s.l + '%;top:' + s.t + '%;width:' + s.w + '%;height:' + s.h + '%">'
+          + '<span class="htip"' + tipStyle + '><strong>' + hesc(s.label) + '</strong>' + hesc(s.tip) + '</span>'
+          + '</div>';
+  }}
+  layer.innerHTML = html;
+}}
 
 function show(i) {{
   current = Math.max(0, Math.min(i, frames.length - 1));
-  document.getElementById("frame-img").src = "data:image/png;base64," + frames[current];
-  document.getElementById("frame-label").textContent = labels[current];
-  document.getElementById("slider").value = current;
-  document.getElementById("counter").textContent = current + " / " + (frames.length - 1);
+  document.getElementById('frame-img').src = 'data:image/png;base64,' + frames[current];
+  document.getElementById('frame-label').textContent = labels[current];
+  document.getElementById('slider').value = current;
+  document.getElementById('counter').textContent = current + ' / ' + (frames.length - 1);
+  updateHotspots(current);
 }}
 
 function nextFrame() {{ show(current + 1); }}
@@ -977,12 +1237,13 @@ def main():
     print(f"  {len(frames)} frames rendered")
 
     html = HTML_TEMPLATE.format(
-        max_frame   = len(frames) - 1,
-        jump_A      = jump_A,
-        jump_B      = jump_B,
-        jump_cmp    = jump_cmp,
-        frames_json = json.dumps(frames),
-        labels_json = json.dumps(labels),
+        max_frame     = len(frames) - 1,
+        jump_A        = jump_A,
+        jump_B        = jump_B,
+        jump_cmp      = jump_cmp,
+        frames_json   = json.dumps(frames),
+        labels_json   = json.dumps(labels),
+        hotspots_json = json.dumps(HOTSPOTS),
     )
 
     with open(OUT, "w") as f:
