@@ -113,6 +113,25 @@
   \end{tikzpicture}%
 }
 
+% ── Description Panel for CRR Pricing Results slides (9, 10, 11) ─────────────
+% Three short paragraphs with bold navy subheads on a light bg with sky-blue accent.
+\newcommand{\descpanel}[3]{%
+  \begin{tikzpicture}
+    \fill[whitesmoke,rounded corners=4pt]
+      (0,0) rectangle (\textwidth,2.10cm);
+    \fill[skyblue]
+      (0,0.05) rectangle (0.10,2.05);
+    \node[text=navydark,font=\tiny,anchor=north west,
+          text width=\dimexpr\textwidth-0.6cm\relax,align=left]
+      at (0.35,2.00)
+      {\textbf{\textcolor{navymid}{What this shows.}}\ #1
+       \\[2pt]
+       \textbf{\textcolor{navymid}{What the numbers say.}}\ #2
+       \\[2pt]
+       \textbf{\textcolor{navymid}{Cross-reference.}}\ #3};
+  \end{tikzpicture}%
+}
+
 % ── Document ──────────────────────────────────────────────────────────────────
 \begin{document}
 
@@ -525,97 +544,104 @@
 \end{frame}
 
 % ══════════════════════════════════════════════════════════════════════════════
-%  SLIDE 5 — CRR PRICING RESULTS
+%  SLIDE 5 — CRR PRICING RESULTS: MODEL vs MARKET VALIDATION
 % ══════════════════════════════════════════════════════════════════════════════
-\begin{frame}{CRR Pricing Results}
+\begin{frame}{CRR Pricing Results: Model vs Market Validation}
   \begin{tikzpicture}[remember picture,overlay]
     \gridbackground
   \end{tikzpicture}
 
-  \begin{columns}[T]
-    \begin{column}{0.33\textwidth}
-      \centering
-      \textbf{\textcolor{navymid}{\small Model vs.\ Market}}
-      \vspace{0.2em}
+  \begin{center}
+    \adjustbox{max width=0.92\textwidth,max height=3.6cm,keepaspectratio}{%
+      \includegraphics{slides/figures/slide9_residual.png}}
+  \end{center}
 
-      \adjustbox{max width=\linewidth,max height=4.8cm,keepaspectratio}{%
-        \includegraphics{project/outputs/model_vs_market.png}}
+  \vspace{0.30em}
 
-      \vspace{0.3em}
-      \begin{tikzpicture}
-        \fill[navydark,rounded corners=4pt] (0,0) rectangle (3.8,2.05);
-        \node[text=silvergray,font=\tiny,anchor=north west,
-              text width=3.6cm,align=left]
-          at (0.1,1.95)
-          {Each point = one option contract.
-           Y-axis: CRR model price; X-axis:
-           market mid (101k AAPL contracts).
-           Tight 45$^{\circ}$ clustering confirms
-           well-calibrated ITM/ATM pricing;
-           deep-OTM put residuals expose the
-           volatility risk premium.};
-      \end{tikzpicture}
-    \end{column}
+  \descpanel
+    {Dollar difference between the CRR model's fair value and the observed
+     market price for each AMD contract (T1 = Buy Call, T2 = Sell Call,
+     T3 = Buy Put, T4 = Sell Put). Bars near zero mean the model and market
+     agree on price.}
+    {All four residuals are less than \$0.002 in absolute value
+     (\textbar edge\textbar~$<$~0.01\%) --- three orders of magnitude inside
+     the $\pm$5\% acceptance band shown by the light-blue stripe. The CRR
+     American binomial pricer is correctly implemented and well-calibrated
+     for at-the-money strikes.}
+    {\emph{\S 4.2.1 --- Layer 1: CRR Pricing Accuracy}.
+     Hypothesis~H1 passed with substantial margin.}
 
-    \begin{column}{0.33\textwidth}
-      \centering
-      \textbf{\textcolor{navymid}{\small Price Convergence ($N$-step)}}
-      \vspace{0.2em}
+  \vspace{0.15em}
 
-      \adjustbox{max width=\linewidth,max height=4.8cm,keepaspectratio}{%
-        \includegraphics{project/outputs/convergence.png}}
-
-      \vspace{0.3em}
-      \begin{tikzpicture}
-        \fill[navydark,rounded corners=4pt] (0,0) rectangle (3.8,2.05);
-        \node[text=silvergray,font=\tiny,anchor=north west,
-              text width=3.6cm,align=left]
-          at (0.1,1.95)
-          {CRR option price vs. tree depth $N$.
-           Characteristic odd-even oscillation
-           damps rapidly; residual error drops
-           below \$0.01 by $N \approx 100$.
-           $N=200$ used throughout to guarantee
-           convergence within typical bid-ask
-           spreads.};
-      \end{tikzpicture}
-    \end{column}
-
-    \begin{column}{0.33\textwidth}
-      \centering
-      \textbf{\textcolor{navymid}{\small Early Exercise Boundary}}
-      \vspace{0.2em}
-
-      \adjustbox{max width=\linewidth,max height=4.8cm,keepaspectratio}{%
-        \includegraphics{project/outputs/early_exercise_boundary.png}}
-
-      \vspace{0.3em}
-      \begin{tikzpicture}
-        \fill[navydark,rounded corners=4pt] (0,0) rectangle (3.8,2.05);
-        \node[text=silvergray,font=\tiny,anchor=north west,
-              text width=3.6cm,align=left]
-          at (0.1,1.95)
-          {Critical stock price $S^*(t)$ below
-           which immediate exercise of an
-           American put dominates holding. The
-           boundary rises monotonically toward
-           the strike as $T \to 0$, matching
-           Brennan--Schwartz theory; confirms
-           lattice captures American optionality.};
-      \end{tikzpicture}
-    \end{column}
-  \end{columns}
-
-  \vspace{0.5em}
   \begin{tikzpicture}
-    \fill[navymid,rounded corners=4pt] (0,0) rectangle (\textwidth,1.0cm);
-    \node[text=white,font=\small,anchor=west,
+    \fill[navymid,rounded corners=4pt]
+      (0,0) rectangle (\textwidth,0.80cm);
+    \node[text=white,font=\scriptsize,anchor=west,
           text width=\dimexpr\textwidth-0.5cm\relax]
-      at (0.2cm,0.50cm)
+      at (0.25cm,0.40cm)
       {\textbf{AMD Live Validation:} AAPL $S_0=\$275.10$, $K=\$280$,
-       $\sigma=64\%$, $T=18$d — model within 1.2\% of market mid on
+       $\sigma=64\%$, $T=18$d --- model within 1.2\% of market mid on
        80\% of contracts.};
   \end{tikzpicture}
+\end{frame}
+
+% ══════════════════════════════════════════════════════════════════════════════
+%  SLIDE 5B — CRR PRICING RESULTS: NUMERICAL CONVERGENCE
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{frame}{CRR Pricing Results: Numerical Convergence}
+  \begin{tikzpicture}[remember picture,overlay]
+    \gridbackground
+  \end{tikzpicture}
+
+  \begin{center}
+    \adjustbox{max width=0.92\textwidth,max height=4.3cm,keepaspectratio}{%
+      \includegraphics{slides/figures/slide9_convergence.png}}
+  \end{center}
+
+  \vspace{0.35em}
+
+  \descpanel
+    {How the CRR price stabilizes as the lattice's number of time steps $N$
+     grows. Main panel: price (\$) vs.\ $N$. Inset: absolute residual
+     $|\text{price}(N) - \text{price}(200)|$ on log scale --- the steeper
+     the line drops, the faster the model converges.}
+    {Both the call ($\approx\$19$) and put ($\approx\$27$) plateau by
+     $N\approx 25$. The log-residual inset crosses the \$0.01 threshold by
+     $N\approx 100$ --- sub-penny precision. Only two lines appear because
+     buy/sell variants of the same contract price identically: Action affects
+     trade direction, not model price.}
+    {\emph{\S 4.3 --- Convergence Analysis}. Validates the $N=100$ step
+     choice with substantial margin.}
+\end{frame}
+
+% ══════════════════════════════════════════════════════════════════════════════
+%  SLIDE 5C — CRR PRICING RESULTS: EARLY EXERCISE BOUNDARY
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{frame}{CRR Pricing Results: Early Exercise Boundary}
+  \begin{tikzpicture}[remember picture,overlay]
+    \gridbackground
+  \end{tikzpicture}
+
+  \begin{center}
+    \adjustbox{max width=0.92\textwidth,max height=4.3cm,keepaspectratio}{%
+      \includegraphics{slides/figures/slide9_boundary.png}}
+  \end{center}
+
+  \vspace{0.35em}
+
+  \descpanel
+    {The critical stock price $S^*(t)$ at each day. If the spot price falls
+     below $S^*$, immediate exercise of the American put dominates holding to
+     expiration. Two cases overlaid: AMD live put (green) and a deeper-ITM
+     illustrative put (red).}
+    {For the AMD live put ($S=\$341.35$, $K=\$350$, out-of-the-money), the
+     boundary rises gradually but never reaches spot --- early exercise is
+     never optimal here. For the illustrative deep-ITM put ($S=\$310$,
+     $K=\$350$), the boundary crosses spot $\sim$17 days in (grey shaded zone)
+     --- exercise becomes optimal. The deep-ITM case demonstrates American
+     optionality, a capability closed-form Black--Scholes lacks.}
+    {\emph{\S 4.4 --- Early Exercise Boundary}. Validates the lattice's
+     American option handling.}
 \end{frame}
 
 % ══════════════════════════════════════════════════════════════════════════════
