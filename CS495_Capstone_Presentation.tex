@@ -645,67 +645,102 @@
 \end{frame}
 
 % ══════════════════════════════════════════════════════════════════════════════
-%  SLIDE 6 — CROSS-VALIDATION, REGIME & BACKTEST
+%  SLIDE 6 — CROSS-MODEL & BACKTEST: L1 vs L2 CROSS-VALIDATION
 % ══════════════════════════════════════════════════════════════════════════════
-\begin{frame}{Cross-Validation, Regime Detection \& Backtest}
+\begin{frame}{Cross-Model \& Backtest: L1 vs L2 Cross-Validation}
   \begin{tikzpicture}[remember picture,overlay]
     \gridbackground
   \end{tikzpicture}
 
-  \begin{columns}[T]
-    % ── Left column: L1 vs L2 plot above Regime Analysis plot ────────────────
-    \begin{column}{0.50\textwidth}
-      \centering
-      \textbf{\textcolor{navymid}{\tiny L1 vs.\ L2 Cross-Validation}}
-      \vspace{0.05em}
+  \begin{center}
+    \adjustbox{max width=0.92\textwidth,max height=4.3cm,keepaspectratio}{%
+      \includegraphics{slides/figures/slide12_cross_val.png}}
+  \end{center}
 
-      \adjustbox{max width=\linewidth,max height=2.85cm,keepaspectratio}{%
-        \includegraphics{project/outputs/l1_vs_l2_comparison.png}}
+  \vspace{0.35em}
 
-      \vspace{0.05em}
-      \textbf{\textcolor{navymid}{\tiny Regime Analysis (IV / RV$_{30}$)}}
-      \vspace{0.05em}
+  \descpanel
+    {Two-panel comparison of CRR Layer~1 edge (no-arbitrage, RV30-based) vs.\
+     XGBoost Layer~2 edge (ML, IV-free) over 3{,}000 AAPL contracts.
+     \emph{Left:} edge scatter colored by regime. \emph{Right:} the actual
+     ITM expiration rate per agreement zone (both-SELL Q3, both-BUY Q1,
+     disagree).}
+    {Aggregate Pearson $r = 0.032$ (statistically zero across all contracts).
+     But when both models agree on direction in the herding regime,
+     $r = \mathbf{0.413}$ ($p = 2.4 \times 10^{-10}$, $n = 217$). The
+     right-panel headline: in the both-SELL zone (Q3), the actual ITM rate
+     jumps to \textbf{76.5\%} vs.\ $\sim$63\% baseline --- direct empirical
+     evidence that the cross-validation has predictive content.}
+    {\emph{\S 4.7 --- Cross-Model Comparison}, Figure~6.
+     Confirms the herding-regime cross-validation result.}
+\end{frame}
 
-      \adjustbox{max width=\linewidth,max height=2.85cm,keepaspectratio}{%
-        \includegraphics{project/outputs/regime_analysis.png}}
-    \end{column}
+% ══════════════════════════════════════════════════════════════════════════════
+%  SLIDE 6B — CROSS-MODEL & BACKTEST: REGIME DETECTION
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{frame}{Cross-Model \& Backtest: Regime Detection}
+  \begin{tikzpicture}[remember picture,overlay]
+    \gridbackground
+  \end{tikzpicture}
 
-    % ── Right column: Monte Carlo Profit and Loss plot above Key Findings box ─
-    \begin{column}{0.47\textwidth}
-      \centering
-      \textbf{\textcolor{navymid}{\tiny Monte Carlo Profit and Loss (1,000 Trades)}}
-      \vspace{0.05em}
+  \begin{center}
+    \adjustbox{max width=0.92\textwidth,max height=4.4cm,keepaspectratio}{%
+      \includegraphics{slides/figures/slide12_regime.png}}
+  \end{center}
 
-      \adjustbox{max width=\linewidth,max height=2.85cm,keepaspectratio}{%
-        \includegraphics{project/outputs/pnl_curve.png}}
+  \vspace{0.30em}
 
-      \vspace{0.05em}
-      \begin{tikzpicture}
-        \fill[navydark,rounded corners=4pt] (0,0) rectangle (6.5,3.80);
-        \draw[skyblue,line width=0.7pt,rounded corners=4pt]
-          (0,0) rectangle (6.5,3.80);
-        \node[text=skyblue,font=\scriptsize\bfseries,anchor=north west]
-          at (0.15,3.72) {Key Findings};
-        \draw[skyblue,opacity=0.4] (0.1,3.33) -- (6.4,3.33);
-        \node[text=silvergray,font=\tiny,anchor=north west,
-              text width=6.25cm,align=left]
-          at (0.15,3.23)
-          {$\bullet$~\textbf{\textcolor{skyblue}{L1 vs L2:}} when both
-           signals say SELL (Q3), actual ITM rate jumps to
-           \textbf{76.5\%} vs.\ $\sim$63\% baseline --- evidence
-           the cross-validation has predictive content.\\[3pt]
-           $\bullet$~\textbf{\textcolor{skyblue}{Regime Analysis:}}
-           IV/RV$_{30}$ splits market; aggregate $r=0.032$ weak,
-           \textbf{herding} $r=\mathbf{0.413}$ (n=217,
-           p=2.4$\times$10$^{-10}$) --- Simpson's Paradox masks
-           the signal in aggregate (Samuelson).\\[3pt]
-           $\bullet$~\textbf{\textcolor{skyblue}{Profit and Loss:}}
-           \$2.9M cumulative on \$100k base; max drawdown $<15\%$,
-           Brier=0.211; regime-conditioned Kelly (half-Normal,
-           quarter-Herding) converts edge to positive EV.};
-      \end{tikzpicture}
-    \end{column}
-  \end{columns}
+  \descpanel
+    {Three-panel time-series view of the crowd-bias regime classifier.
+     \emph{Top:} ATM implied vol (navy) vs.\ 30-day realized vol (red).
+     \emph{Middle:} the RV$-$IV spread with herding ($+10\%$) and normal
+     ($\pm5\%$) thresholds. \emph{Bottom:} the detected regime ribbon ---
+     burnt orange = Herding, green = Normal --- per trading day.}
+    {Across AAPL 2016--2021 (1{,}223 days), the classifier flags
+     \textbf{104 days as Herding} ($\mathbf{8.5\%}$) and the remainder as
+     Normal. COVID-2020 inverts the typical pattern (RV peak $\approx 4.0$
+     and a spread trough of $-3.6$) and is annotated above the clip lines
+     rather than allowed to dominate the y-axes. This 8.5\% Herding slice
+     is exactly the subset where Layer~1 and Layer~2 reach
+     $r = 0.413$ --- Simpson's Paradox in action: the aggregate signal is
+     statistical noise, but conditioned on the right regime it is highly
+     significant.}
+    {\emph{\S 3.4.6 (Crowd Bias Detector)} and \emph{\S 4.6 (Regime
+     Analysis)}, Figure~5.}
+\end{frame}
+
+% ══════════════════════════════════════════════════════════════════════════════
+%  SLIDE 6C — CROSS-MODEL & BACKTEST: WALK-FORWARD BACKTEST
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{frame}{Cross-Model \& Backtest: Walk-Forward Backtest}
+  \begin{tikzpicture}[remember picture,overlay]
+    \gridbackground
+  \end{tikzpicture}
+
+  \begin{center}
+    \adjustbox{max width=0.92\textwidth,max height=4.4cm,keepaspectratio}{%
+      \includegraphics{slides/figures/slide12_backtest.png}}
+  \end{center}
+
+  \vspace{0.30em}
+
+  \descpanel
+    {Out-of-sample chronological test of the full Layer-1 + Layer-2 +
+     Layer-3 pipeline across 57{,}231 AAPL trade decisions (2017--2021).
+     \emph{Top:} cumulative P\&L curve over the test window.
+     \emph{Bottom:} distribution of per-trade P\&L for the
+     \textbf{3{,}760 trades the policy actually executed} (excluding the
+     53k \textsc{no-trade} rows that were drowning the original histogram).}
+    {Cumulative P\&L reaches \textbf{\$2.94M} on a \$100k base with
+     \textbf{max drawdown $<15\%$} --- the circuit breaker never fired.
+     Per-trade \textbf{hit rate $= 63.1\%$} (2{,}371 wins vs.\ 1{,}389
+     losses); mean trade $= \$781$, median $= \$1{,}220$. The Layer~2
+     classifier achieves a Brier score of $0.211$, below the $0.25$
+     naive baseline. Regime-conditioned half-Kelly (Normal) and
+     quarter-Kelly (Herding) sizing converts the detected edge into
+     positive expected value out-of-sample.}
+    {\emph{\S 4.8 --- Walk-Forward Backtest Results}, Figure~7 and
+     \emph{\S 4.10.3 (Backtest Stability)}. Confirms hypothesis H3.}
 \end{frame}
 
 % ══════════════════════════════════════════════════════════════════════════════
