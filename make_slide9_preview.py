@@ -121,7 +121,7 @@ def preview_convergence():
     visible_chain = CHAIN.iloc[[1, 3]].reset_index(drop=True)  # T2 SC, T4 SP
 
     steps = [5, 7, 10, 15, 25, 50, 75, 100, 150, 200]
-    fig, ax = plt.subplots(figsize=(8.5, 5.5))
+    fig, ax = plt.subplots(figsize=(12, 5))
     fig.patch.set_facecolor(BG_WHITE)
     ax.set_facecolor(BG_WHITE)
 
@@ -158,7 +158,9 @@ def preview_convergence():
     ax.grid(True, alpha=0.25)
 
     # ── Log-scale residual inset ──────────────────────────────────────────────
-    inset = ax.inset_axes([0.18, 0.18, 0.42, 0.36])
+    # Inset centered between the two flat lines (Calls ~$19 at axes-y≈0.10
+    # and Puts ~$27 at axes-y≈0.90), and centered horizontally in the plot.
+    inset = ax.inset_axes([0.29, 0.32, 0.42, 0.36])
     inset.set_facecolor("#F8FAFC")
     for opt_type, prices in series.items():
         residuals = np.abs(prices - prices[-1])  # |price(N) − price(200)|
@@ -193,7 +195,7 @@ def preview_boundary():
     amd_put = CHAIN[CHAIN["option_type"] == "put"].iloc[1]
     N = 100
 
-    fig, ax = plt.subplots(figsize=(9, 5.5))
+    fig, ax = plt.subplots(figsize=(12, 5))
     fig.patch.set_facecolor(BG_WHITE)
     ax.set_facecolor(BG_WHITE)
 

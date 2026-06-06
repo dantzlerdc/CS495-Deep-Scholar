@@ -102,7 +102,7 @@ def preview_regime():
     spread_min_val = float(spread[spread_min_idx])
     spread_min_dt  = dates.iloc[spread_min_idx].strftime("%b %Y")
 
-    fig, axes = plt.subplots(3, 1, figsize=(12, 8.5), sharex=True,
+    fig, axes = plt.subplots(3, 1, figsize=(14, 6), sharex=True,
                              gridspec_kw={"height_ratios": [3.0, 2.5, 1.0]})
     fig.patch.set_facecolor(BG_WHITE)
     fig.suptitle("Crowd Bias Regime Analysis  —  AAPL 2016–2021  "
@@ -220,7 +220,7 @@ def preview_backtest():
     hit_rate   = float((pnl > 0).mean()) * 100
 
     # ── Figure layout ────────────────────────────────────────────────────────
-    fig, axes = plt.subplots(2, 1, figsize=(12, 7.5),
+    fig, axes = plt.subplots(2, 1, figsize=(14, 6),
                              gridspec_kw={"height_ratios": [1.4, 1.0]})
     fig.patch.set_facecolor(BG_WHITE)
     fig.suptitle("Walk-Forward Backtest  —  P&L Summary  "
