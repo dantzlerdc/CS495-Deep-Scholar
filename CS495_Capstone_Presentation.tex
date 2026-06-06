@@ -132,6 +132,57 @@
   \end{tikzpicture}%
 }
 
+% ── Flex variant — same look, but first two section labels are caller-supplied
+% Used by worked-example slides (6, 7, 8) where the standard labels don't fit.
+% Cross-reference label stays hardcoded so it anchors every figure slide.
+% Compact 1.65 cm height with tight \\[1pt] line spacing — gives figures more
+% vertical room than the standard 3-section \descpanel (2.10 cm).
+%
+% Args:  #1=lbl1  #2=body1   #3=lbl2  #4=body2   #5=cross-ref body
+\newcommand{\descpanelflex}[5]{%
+  \begin{tikzpicture}
+    \fill[whitesmoke,rounded corners=4pt]
+      (0,0) rectangle (\textwidth,1.70cm);
+    \fill[skyblue]
+      (0,0.05) rectangle (0.10,1.65);
+    \node[text=navydark,font=\tiny,anchor=north west,
+          text width=\dimexpr\textwidth-0.6cm\relax,align=left,
+          inner sep=0pt]
+      at (0.35,1.60)
+      {\textbf{\textcolor{navymid}{#1.}}\ #2
+       \\[1pt]
+       \textbf{\textcolor{navymid}{#3.}}\ #4
+       \\[1pt]
+       \textbf{\textcolor{navymid}{Cross-reference.}}\ #5};
+  \end{tikzpicture}%
+}
+
+% ── 4-section flex variant — three custom labels + hardcoded "Cross-reference"
+% Used by slide 8 (Contract A Result) which has three distinct content blocks
+% (Layer-1 math, Layer-2 ML, agreement story) plus the universal cross-reference.
+% Slightly taller (2.10 cm) than \descpanelflex to accommodate the 4th section.
+%
+% Args:  #1=lbl1  #2=body1   #3=lbl2  #4=body2   #5=lbl3  #6=body3   #7=xref body
+\newcommand{\descpanelfourflex}[7]{%
+  \begin{tikzpicture}
+    \fill[whitesmoke,rounded corners=4pt]
+      (0,0) rectangle (\textwidth,2.10cm);
+    \fill[skyblue]
+      (0,0.05) rectangle (0.10,2.05);
+    \node[text=navydark,font=\tiny,anchor=north west,
+          text width=\dimexpr\textwidth-0.6cm\relax,align=left,
+          inner sep=0pt]
+      at (0.35,2.00)
+      {\textbf{\textcolor{navymid}{#1.}}\ #2
+       \\[1pt]
+       \textbf{\textcolor{navymid}{#3.}}\ #4
+       \\[1pt]
+       \textbf{\textcolor{navymid}{#5.}}\ #6
+       \\[1pt]
+       \textbf{\textcolor{navymid}{Cross-reference.}}\ #7};
+  \end{tikzpicture}%
+}
+
 % ── Document ──────────────────────────────────────────────────────────────────
 \begin{document}
 
@@ -374,47 +425,27 @@
     \gridbackground
   \end{tikzpicture}
 
-  \vspace{-0.4em}
-  {\footnotesize\textcolor{authorgray}{$u$, $d$, $p^*$ derived from $\sigma = $ RV30\hspace{1em}$\cdot$\hspace{1em}%
-   5-step visualization, 50-step pricing}}
+  \begin{center}
+    \adjustbox{max width=0.92\textwidth,max height=5.3cm,keepaspectratio}{%
+      \includegraphics{previews/Slide-Forward-Pass.png}}
+  \end{center}
 
-  \vspace{0.4em}
-  \begin{columns}[T]
-    \begin{column}{0.58\textwidth}
-      \centering
-      \adjustbox{max width=\linewidth,max height=5.8cm,keepaspectratio}{%
-        \includegraphics{previews/Slide-Forward-Pass.png}}
-    \end{column}
+  \vspace{0.05em}
 
-    \begin{column}{0.40\textwidth}
-      \textbf{\textcolor{navymid}{\small What this pass does}}\\[2pt]
-      {\footnotesize Lays out every possible stock price path. No option
-       value computed yet --- only $S$ evolution from $t=0$ to expiry.}
-
-      \vspace{0.7em}
-      \textbf{\textcolor{navymid}{\small What ``no-arbitrage'' means}}\\[3pt]
-      \begin{tikzpicture}
-        \fill[whitesmoke,draw=silvergray,rounded corners=3pt]
-              (0,0) rectangle (5.7,1.2);
-        \node[anchor=north west,text=navydark,font=\footnotesize,
-              text width=5.4cm,align=left]
-          at (0.15,1.05)
-          {\textbf{No-arbitrage} = no risk-free profit can exist
-           in an efficient market.};
-      \end{tikzpicture}
-
-      \vspace{0.5em}
-      \begin{tikzpicture}
-        \fill[forestgreen,rounded corners=4pt] (0,0) rectangle (5.7,1.7);
-        \node[text=white,font=\scriptsize,anchor=north west,
-              text width=5.4cm,align=left]
-          at (0.15,1.55)
-          {\textbf{Reading:} Lattice recombines --- node count grows
-           linearly ($N{+}1$), not exponentially ($2^N$). That is why
-           50 pricing steps remain cheap.};
-      \end{tikzpicture}
-    \end{column}
-  \end{columns}
+  \descpanelflex
+    {What this pass does}
+    {Lays out every possible stock price path from $t=0$ to expiry.
+     $u$, $d$, $p^*$ derived from $\sigma = \text{RV30}$. No option
+     value is computed here --- only $S$ evolution. 5-step
+     visualization; 50-step lattice used for pricing.}
+    {No-arbitrage}
+    {No risk-free profit can exist in an efficient market. The
+     risk-neutral probability $p^* = (e^{r\,\Delta t} - d)/(u-d)$
+     enforces this so the discounted expected next-step stock price
+     equals today's price.}
+    {\emph{\S 2.2 (CRR foundational equations)} and
+     \emph{\S 3.4.1 (forward-pass lattice construction)} of the
+     research report.}
 \end{frame}
 
 % ══════════════════════════════════════════════════════════════════════════════
@@ -425,56 +456,28 @@
     \gridbackground
   \end{tikzpicture}
 
-  \vspace{-0.4em}
-  {\footnotesize\textcolor{authorgray}{CRR fair value $\$16.663$ vs market $\$21.225$\hspace{1em}$\cdot$\hspace{1em}%
-   overpriced $+21.5\%$}}
+  \begin{center}
+    \adjustbox{max width=0.92\textwidth,max height=5.3cm,keepaspectratio}{%
+      \includegraphics{previews/Slide-Backward-Pass.png}}
+  \end{center}
 
-  \vspace{0.4em}
-  \begin{columns}[T]
-    \begin{column}{0.58\textwidth}
-      \centering
-      \adjustbox{max width=\linewidth,max height=5.8cm,keepaspectratio}{%
-        \includegraphics{previews/Slide-Backward-Pass.png}}
-    \end{column}
+  \vspace{0.05em}
 
-    \begin{column}{0.40\textwidth}
-      \textbf{\textcolor{navymid}{\small At every interior node}}\\[3pt]
-      \begin{tikzpicture}
-        \fill[whitesmoke,draw=silvergray,rounded corners=3pt]
-              (0,0) rectangle (5.7,1.7);
-        \node[anchor=north west,text=navydark,font=\footnotesize,
-              text width=5.5cm,align=left]
-          at (0.15,1.6)
-          {intrinsic $= \max(K - S,\, 0)$\\[2pt]
-           hold $= e^{-r\Delta t}\,(p \cdot V_{\text{up}} + q \cdot V_{\text{dn}})$\\[2pt]
-           \textcolor{forestgreen}{$V = \max(\text{intrinsic},\,\text{hold})$}};
-      \end{tikzpicture}
-
-      \vspace{0.6em}
-      \textbf{\textcolor{navymid}{\small Result at the root}}\\[3pt]
-      \begin{tikzpicture}
-        \fill[termRD,rounded corners=4pt] (0,0) rectangle (6.0,1.9);
-        \node[text=white,font=\footnotesize,anchor=north west,
-              text width=5.5cm,align=left]
-          at (0.2,1.78)
-          {$V(N{=}50) = \$16.663$ \hfill (CRR fair value)\\[3pt]
-           $V_{\text{market}} = \$21.225$ \hfill (bid-ask mid)\\[3pt]
-           \textbf{Edge $= -21.5\%$ \hfill \textcolor{goldaccent}{$\bigstar$} OVERPRICED}};
-      \end{tikzpicture}
-    \end{column}
-  \end{columns}
-
-  \vspace{0.5em}
-  \begin{tikzpicture}
-    \fill[navymid,rounded corners=4pt] (0,0) rectangle (\textwidth,0.85cm);
-    \node[text=white,font=\scriptsize,anchor=west,
-          text width=\dimexpr\textwidth-0.5cm\relax]
-      at (0.2cm,0.42cm)
-      {\textbf{Reading:} When the gold \textcolor{goldaccent}{$\bigstar$} sits above root $V$,
-       the crowd pays more than no-arbitrage theory permits. That gap
-       is the Layer 1 edge --- already negative here, before any ML
-       model is consulted.};
-  \end{tikzpicture}
+  \descpanelflex
+    {At every interior node}
+    {Compute intrinsic value $= \max(K - S,\,0)$ and continuation value
+     hold $= e^{-r\,\Delta t}\,(p\, V_{\text{up}} + q\, V_{\text{dn}})$,
+     then take $V = \max(\text{intrinsic},\,\text{hold})$ --- the American
+     early-exercise check that makes this a CRR American pricer rather
+     than a European one.}
+    {Result at the root and edge interpretation}
+    {$V(N{=}50) = \$16.663$ (CRR fair value) vs.\ $V_{\text{market}} =
+     \$21.225$ (bid-ask mid). Layer 1 edge $= \mathbf{-21.5\%}$ ---
+     contract is \textbf{overpriced}. When the gold star sits above root
+     $V$, the crowd is paying more than no-arbitrage theory permits.
+     This is the Layer 1 edge \emph{before any ML model is consulted}.}
+    {\emph{\S 3.4.1 (backward-induction algorithm)} and
+     \emph{\S 3.4.3 (mispricing edge derivation)} of the research report.}
 \end{frame}
 
 % ══════════════════════════════════════════════════════════════════════════════
@@ -485,62 +488,30 @@
     \gridbackground
   \end{tikzpicture}
 
-  \vspace{-0.4em}
-  {\footnotesize\textcolor{authorgray}{Layer 1 (CRR) $+$ Layer 2 (XGBoost) $\to$ BOTH SELL\hspace{1em}$\cdot$\hspace{1em}%
-   HERDING regime}}
+  \begin{center}
+    \adjustbox{max width=0.92\textwidth,max height=4.85cm,keepaspectratio}{%
+      \includegraphics{slides/figures/slide8_result.png}}
+  \end{center}
 
-  \vspace{0.4em}
-  \begin{columns}[T]
-    \begin{column}{0.58\textwidth}
-      \centering
-      \adjustbox{max width=\linewidth,max height=4.5cm,keepaspectratio}{%
-        \includegraphics{previews/Slide-Option-Pricing-Results.png}}
-    \end{column}
+  \vspace{0.05em}
 
-    \begin{column}{0.40\textwidth}
-      \textbf{\textcolor{navymid}{\small Layer 1 (CRR math)}}\\[3pt]
-      \begin{tikzpicture}
-        \fill[whitesmoke,draw=silvergray,rounded corners=3pt]
-              (0,0) rectangle (5.7,1.3);
-        \node[anchor=north west,text=navydark,font=\footnotesize,
-              text width=5.5cm,align=left]
-          at (0.15,1.2)
-          {$V_{\text{market}} = \$21.225$ \hfill $V_{\text{model}} = \$16.663$\\[2pt]
-           \textcolor{termRD}{Edge $= -0.2149\ \to$ OVERPRICES}};
-      \end{tikzpicture}
-
-      \vspace{0.4em}
-      \textbf{\textcolor{navymid}{\small Layer 2 (XGBoost ML)}}\\[3pt]
-      \begin{tikzpicture}
-        \fill[whitesmoke,draw=silvergray,rounded corners=3pt]
-              (0,0) rectangle (5.7,1.3);
-        \node[anchor=north west,text=navydark,font=\footnotesize,
-              text width=5.5cm,align=left]
-          at (0.15,1.2)
-          {$p_{\text{indep}} = 0.0562$ \hfill $q_{\text{market}} = 0.0884$\\[2pt]
-           \textcolor{termRD}{Edge $= -0.0322\ \to$ OVERPRICES}};
-      \end{tikzpicture}
-
-      \vspace{0.4em}
-      \begin{tikzpicture}
-        \fill[forestgreen,rounded corners=4pt] (0,0) rectangle (5.7,1.1);
-        \node[text=white,font=\footnotesize\bfseries,anchor=center]
-          at (2.85,0.55)
-          {BOTH SELL --- HERDING regime};
-      \end{tikzpicture}
-    \end{column}
-  \end{columns}
-
-  \vspace{0.4em}
-  \begin{tikzpicture}
-    \fill[navymid,rounded corners=4pt] (0,0) rectangle (\textwidth,0.85cm);
-    \node[text=white,font=\scriptsize,anchor=west,
-          text width=\dimexpr\textwidth-0.5cm\relax]
-      at (0.2cm,0.42cm)
-      {\textbf{Why it matters:} Neither layer was trained on the other.
-       Agreement comes from shared underlying reality --- the empirical
-       fingerprint of Samuelson macro-inefficiency.};
-  \end{tikzpicture}
+  \descpanelfourflex
+    {Layer 1 (CRR math)}
+    {$V_{\text{market}} = \$21.225$ vs $V_{\text{model}} = \$16.663$.
+     Layer 1 edge $= \mathbf{-21.5\%}$ --- the no-arbitrage pricer says
+     the contract is \textbf{overpriced}.}
+    {Layer 2 (XGBoost ML)}
+    {$p_{\text{indep}} = 0.0562$ vs $q_{\text{market}} = 0.0884$.
+     Layer 2 edge $= \mathbf{-3.22\%}$ --- the IV-free ML classifier
+     \emph{also} flags the contract as overpriced, from completely
+     different inputs.}
+    {Why this matters}
+    {Two layers, no shared training data, no shared methodology, BOTH
+     SELL in the HERDING regime. Agreement is the empirical fingerprint
+     of Samuelson macro-inefficiency: crowd consensus diverges from
+     underlying reality.}
+    {\emph{\S 4.7 --- Cross-Model Comparison} (Figure 6); the herding-regime
+     $r = 0.413$ ($p = 2.4 \times 10^{-10}$, $n = 217$) result.}
 \end{frame}
 
 % ══════════════════════════════════════════════════════════════════════════════
@@ -552,11 +523,11 @@
   \end{tikzpicture}
 
   \begin{center}
-    \adjustbox{max width=0.92\textwidth,max height=3.6cm,keepaspectratio}{%
+    \adjustbox{max width=0.92\textwidth,max height=4.85cm,keepaspectratio}{%
       \includegraphics{slides/figures/slide9_residual.png}}
   \end{center}
 
-  \vspace{0.30em}
+  \vspace{0.05em}
 
   \descpanel
     {Dollar difference between the CRR model's fair value and the observed
@@ -570,19 +541,6 @@
      for at-the-money strikes.}
     {\emph{\S 4.2.1 --- Layer 1: CRR Pricing Accuracy}.
      Hypothesis~H1 passed with substantial margin.}
-
-  \vspace{0.15em}
-
-  \begin{tikzpicture}
-    \fill[navymid,rounded corners=4pt]
-      (0,0) rectangle (\textwidth,0.80cm);
-    \node[text=white,font=\scriptsize,anchor=west,
-          text width=\dimexpr\textwidth-0.5cm\relax]
-      at (0.25cm,0.40cm)
-      {\textbf{AMD Live Validation:} AAPL $S_0=\$275.10$, $K=\$280$,
-       $\sigma=64\%$, $T=18$d --- model within 1.2\% of market mid on
-       80\% of contracts.};
-  \end{tikzpicture}
 \end{frame}
 
 % ══════════════════════════════════════════════════════════════════════════════
@@ -594,7 +552,7 @@
   \end{tikzpicture}
 
   \begin{center}
-    \adjustbox{max width=0.92\textwidth,max height=4.3cm,keepaspectratio}{%
+    \adjustbox{max width=0.92\textwidth,max height=4.85cm,keepaspectratio}{%
       \includegraphics{slides/figures/slide9_convergence.png}}
   \end{center}
 
@@ -623,7 +581,7 @@
   \end{tikzpicture}
 
   \begin{center}
-    \adjustbox{max width=0.92\textwidth,max height=4.3cm,keepaspectratio}{%
+    \adjustbox{max width=0.92\textwidth,max height=4.65cm,keepaspectratio}{%
       \includegraphics{slides/figures/slide9_boundary.png}}
   \end{center}
 
@@ -653,7 +611,7 @@
   \end{tikzpicture}
 
   \begin{center}
-    \adjustbox{max width=0.92\textwidth,max height=4.3cm,keepaspectratio}{%
+    \adjustbox{max width=0.92\textwidth,max height=4.65cm,keepaspectratio}{%
       \includegraphics{slides/figures/slide12_cross_val.png}}
   \end{center}
 
@@ -684,7 +642,7 @@
   \end{tikzpicture}
 
   \begin{center}
-    \adjustbox{max width=0.92\textwidth,max height=4.4cm,keepaspectratio}{%
+    \adjustbox{max width=0.92\textwidth,max height=4.45cm,keepaspectratio}{%
       \includegraphics{slides/figures/slide12_regime.png}}
   \end{center}
 
@@ -718,7 +676,7 @@
   \end{tikzpicture}
 
   \begin{center}
-    \adjustbox{max width=0.92\textwidth,max height=4.4cm,keepaspectratio}{%
+    \adjustbox{max width=0.92\textwidth,max height=4.45cm,keepaspectratio}{%
       \includegraphics{slides/figures/slide12_backtest.png}}
   \end{center}
 
