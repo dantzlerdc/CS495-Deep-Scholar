@@ -1,0 +1,336 @@
+% =============================================================
+% CS495 -- Data Science Project Practicum
+% Capstone Poster Template -- Bellevue College
+% Format: A0 portrait (841mm x 1189mm), uses a0poster class
+% Compile with: pdflatex poster.tex (run twice)
+% Recommended: place Figures/BellevueCollegeLogoHorzClr.png next to this file.
+% =============================================================
+
+\documentclass[a0,portrait]{a0poster}
+
+% ---------- Packages ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multicol}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage{tikz}
+\usepackage{ragged2e}
+\usepackage{anyfontsize}
+\tcbuselibrary{skins,breakable}
+
+% ---------- Bellevue College Brand Colors ----------
+% Source: bellevuecollege.edu official style guide
+\definecolor{BCBlue}{HTML}{003D79}        % Brutus Blue   (primary)
+\definecolor{BCSilver}{HTML}{A7A9AC}      % Bulldog Silver (primary)
+\definecolor{BCRed}{HTML}{C4122F}         % Fall Maple Red (accent)
+\definecolor{BCLightBlue}{HTML}{E6EEF7}   % Soft tinted background
+\definecolor{BCDarkBlue}{HTML}{002851}    % Deeper variant
+\definecolor{BCInk}{HTML}{1A1A1A}         % Body text
+
+% ---------- Layout ----------
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+\setlength{\columnsep}{2.5cm}
+\setlength{\columnseprule}{0pt}
+
+% ---------- Block container ----------
+\newtcolorbox{posterblock}[1]{
+    enhanced, breakable,
+    colback=white, colframe=BCSilver,
+    boxrule=0.8pt, arc=6pt,
+    left=18pt, right=18pt, top=10pt, bottom=14pt,
+    fonttitle=\bfseries\Large,
+    title={#1},
+    coltitle=white,
+    colbacktitle=BCBlue,
+    attach boxed title to top left={xshift=0mm, yshift=0mm},
+    boxed title style={
+        colback=BCBlue, colframe=BCBlue,
+        sharp corners, boxrule=0pt,
+        left=14pt, right=18pt, top=8pt, bottom=8pt,
+    },
+    title filled=true,
+    before skip=18pt, after skip=18pt,
+    overlay unbroken and first={
+        \fill[BCRed] (frame.north west) rectangle ([xshift=12pt]frame.north west|-title.south);
+    },
+}
+
+% ---------- Inline tinted callout box ----------
+\newtcolorbox{callout}{
+    colback=BCLightBlue, colframe=BCLightBlue,
+    arc=4pt, left=14pt, right=14pt, top=10pt, bottom=10pt,
+    boxrule=0pt,
+}
+
+% ---------- Figure placeholder ----------
+\newcommand{\figplaceholder}[2][10cm]{%
+    \begin{center}
+    \fcolorbox{BCSilver}{BCLightBlue!40}{%
+        \parbox[c][#1][c]{0.94\linewidth}{\centering\itshape\color{BCDarkBlue}#2}%
+    }
+    \end{center}
+}
+
+% ---------- a0poster uses VeryHuge / Huge / huge / Large / etc.
+%            but we redefine \normalsize for body text consistency ----------
+
+\begin{document}
+
+% =============================================================
+% TITLE BANNER
+% =============================================================
+\noindent
+\begin{tikzpicture}[remember picture]
+  % Blue title bar across full text width
+  \fill[BCLightBlue] (0,0) rectangle (\textwidth, 11cm);
+  % Red accent stripe along the bottom
+  \fill[BCRed]  (0,0) rectangle (\textwidth, 0.6cm);
+
+  % Logo on the left
+  \node[anchor=west, inner sep=0pt] at (1cm, 6cm) {
+    \IfFileExists{BellevueCollegeLogoHorzClr.png}{%
+      \includegraphics[height=7cm]{BellevueCollegeLogoHorzClr.png}%
+    }{%
+      \colorbox{BCDarkBlue}{\parbox[c][7cm][c]{22cm}{\centering\bfseries\color{BCBlue}\fontsize{50}{60}\selectfont
+        Bellevue College\\[6pt]\fontsize{22}{26}\selectfont\itshape (place logo here)}}%
+    }
+  };
+
+  % Title text on the right
+  \node[anchor=west, inner sep=0pt, text width=\textwidth-32cm, align=left]
+       at (32cm, 7.5cm) {%
+    \color{BCDarkBlue}\fontsize{86}{96}\selectfont\bfseries
+    [Your Project Title Here]
+  };
+  \node[anchor=west, inner sep=0pt, text width=\textwidth-32cm, align=left]
+       at (32cm, 3.6cm) {%
+    \color{BCDarkBlue}\fontsize{40}{48}\selectfont
+    \textbf{Author:} [Student Name] \quad\textbar\quad
+    \textbf{Faculty Advisor:} Dr.~Pedro Albuquerque
+  };
+  \node[anchor=west, inner sep=0pt, text width=\textwidth-32cm, align=left]
+       at (32cm, 1.6cm) {%
+    \color{BCDarkBlue}\fontsize{32}{38}\selectfont\itshape
+    CS\,495 -- Data Science Project Practicum \;\textbullet\; Bellevue College \;\textbullet\; Spring 2026
+  };
+\end{tikzpicture}
+
+\vspace{2cm}
+
+% =============================================================
+% THREE-COLUMN BODY
+% =============================================================
+\RaggedRight
+\large
+
+\begin{multicols}{3}
+
+% ---------- LEFT COLUMN ----------
+\begin{posterblock}{Abstract}
+\textit{[Provide a concise 4--6 sentence summary of your project. State the
+problem, the approach you took, your key results, and the broader significance.
+The abstract should be self-contained and understandable by any technically
+literate reader, even outside your specific subfield.]}
+
+\vspace{0.5em}
+\textbf{Keywords:} \textit{[keyword~1, keyword~2, keyword~3, keyword~4]}
+\end{posterblock}
+
+\begin{posterblock}{Introduction \& Motivation}
+\textit{[Introduce the problem domain and explain why it matters. Provide
+enough background so a general audience can follow the project. Cite previous
+work where appropriate.]}
+
+\vspace{0.5em}
+\textbf{Research Questions}
+\begin{itemize}[leftmargin=1.4em,itemsep=4pt,topsep=4pt]
+  \item \textit{[Research question 1]}
+  \item \textit{[Research question 2]}
+  \item \textit{[Research question 3]}
+\end{itemize}
+
+\vspace{0.3em}
+\textbf{Objectives}
+\begin{itemize}[leftmargin=1.4em,itemsep=4pt,topsep=4pt]
+  \item \textit{[Objective 1 -- be specific and measurable]}
+  \item \textit{[Objective 2]}
+  \item \textit{[Objective 3]}
+\end{itemize}
+\end{posterblock}
+
+\begin{posterblock}{Data Description}
+\textit{[Describe your data source(s), collection method, size, time range,
+and preprocessing steps. Mention any data limitations.]}
+
+\vspace{0.6em}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}p{0.34\linewidth}p{0.60\linewidth}@{}}
+\toprule
+\textbf{Attribute} & \textbf{Description} \\
+\midrule
+Source         & \textit{[e.g., Kaggle, public API, survey]} \\
+Sample size    & \textit{[n = \ldots\,]} \\
+Variables      & \textit{[number and types]} \\
+Time range     & \textit{[start -- end]} \\
+Missing data   & \textit{[\% and handling strategy]} \\
+\bottomrule
+\end{tabular}
+\end{posterblock}
+
+\begin{posterblock}{Exploratory Data Analysis}
+\textit{[Highlight 2--3 key patterns you discovered while exploring the data.
+Use a small chart if it helps the audience understand the data shape.]}
+
+\figplaceholder[12cm]{[Insert EDA chart: distribution, correlation heatmap, or trend plot]}
+\end{posterblock}
+
+% ---------- COLUMN BREAK ----------
+\columnbreak
+
+\begin{posterblock}{Methodology}
+\textit{[Describe your overall analytical pipeline. A diagram or flowchart
+is strongly encouraged.]}
+
+\figplaceholder[14cm]{[Insert pipeline diagram, workflow chart, or system architecture]}
+
+\vspace{0.4em}
+\textbf{Techniques Used}
+\begin{itemize}[leftmargin=1.4em,itemsep=4pt,topsep=4pt]
+  \item \textit{[Data cleaning / preprocessing]}
+  \item \textit{[Feature engineering]}
+  \item \textit{[Models: e.g., logistic regression, random forest, neural net]}
+  \item \textit{[Evaluation metrics: e.g., accuracy, RMSE, F1]}
+\end{itemize}
+\end{posterblock}
+
+\begin{posterblock}{Model \& Analysis}
+\textit{[Present your model formulation, key assumptions, and analytical
+framework. Equations go here.]}
+
+\vspace{0.4em}
+\begin{callout}
+\centering\Large
+$\displaystyle \hat{y} \;=\; \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_k x_k + \varepsilon$
+\end{callout}
+
+\textit{[Briefly justify why this model is appropriate for your problem and data.]}
+
+\vspace{0.5em}
+\textbf{Training / Validation Setup}
+\begin{itemize}[leftmargin=1.4em,itemsep=4pt,topsep=4pt]
+  \item Train/test split: \textit{[e.g., 80/20]}
+  \item Cross-validation:  \textit{[e.g., 5-fold]}
+  \item Hyperparameter tuning: \textit{[e.g., grid search]}
+  \item Software stack: \textit{[Python, scikit-learn, PyTorch, R\ldots\,]}
+\end{itemize}
+\end{posterblock}
+
+\begin{posterblock}{Implementation \& Tools}
+\textit{[Briefly list the technologies and infrastructure used. Mention any
+notable engineering challenges and how you solved them.]}
+
+\vspace{0.4em}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}p{0.32\linewidth}p{0.62\linewidth}@{}}
+\toprule
+\textbf{Component} & \textbf{Tools / Libraries} \\
+\midrule
+Language       & \textit{[Python 3.x, R, SQL\ldots]} \\
+Modeling       & \textit{[scikit-learn, XGBoost\ldots]} \\
+Visualization  & \textit{[matplotlib, seaborn, Plotly\ldots]} \\
+Deployment     & \textit{[Streamlit, Flask, AWS\ldots]} \\
+\bottomrule
+\end{tabular}
+\end{posterblock}
+
+% ---------- COLUMN BREAK ----------
+\columnbreak
+
+\begin{posterblock}{Results}
+\textit{[Present your key findings. Use figures, tables, and short interpretive
+captions. Highlight the most important numbers.]}
+
+\figplaceholder[13cm]{[Insert primary results figure / chart]}
+
+\vspace{0.4em}
+\textbf{Performance Summary}
+
+\vspace{0.3em}
+\renewcommand{\arraystretch}{1.35}
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Model} & \textbf{Metric 1} & \textbf{Metric 2} & \textbf{Metric 3} \\
+\midrule
+\textit{Baseline} & \textit{xx} & \textit{xx} & \textit{xx} \\
+\textit{Model A}  & \textit{xx} & \textit{xx} & \textit{xx} \\
+\textit{Model B}  & \textit{xx} & \textit{xx} & \textit{xx} \\
+\bottomrule
+\end{tabular}
+\RaggedRight
+\end{posterblock}
+
+\begin{posterblock}{Discussion \& Conclusions}
+\textit{[Summarize what you found, why it matters, and how it answers your
+research questions. Be honest about limitations.]}
+
+\vspace{0.5em}
+\textbf{Key Takeaways}
+\begin{itemize}[leftmargin=1.4em,itemsep=4pt,topsep=4pt]
+  \item \textit{[Finding 1]}
+  \item \textit{[Finding 2]}
+  \item \textit{[Finding 3]}
+\end{itemize}
+
+\vspace{0.3em}
+\textbf{Limitations:} \textit{[Sample size, missing data, model assumptions,
+generalizability, etc.]}
+
+\vspace{0.3em}
+\textbf{Future Work:} \textit{[Logical next steps for extending or improving
+the project.]}
+\end{posterblock}
+
+\begin{posterblock}{References}
+\normalsize
+\begin{enumerate}[leftmargin=1.6em,itemsep=4pt,topsep=4pt]
+  \item \textit{[Author, A. (Year). Title of paper. Journal, vol(issue), pp.]}
+  \item \textit{[Author, B. (Year). Title of book. Publisher.]}
+  \item \textit{[Author, C. (Year). Title of dataset. Source URL.]}
+  \item \textit{[Author, D. (Year). Title. Conference proceedings.]}
+\end{enumerate}
+\end{posterblock}
+
+\begin{posterblock}{Acknowledgments \& Contact}
+The author thanks \textbf{Dr.~Pedro Albuquerque} for his guidance throughout
+CS\,495, and the Bellevue College Computer Science program for supporting this
+capstone project.
+
+\vspace{0.5em}
+\textbf{Contact:} \textit{[student.email@bellevuecollege.edu]}\\
+\textbf{Code / Repository:} \textit{[github.com/\ldots\,]}\\
+\textbf{Project page:} \textit{[optional URL]}
+\end{posterblock}
+
+\end{multicols}
+
+% ---------- Footer band ----------
+\vfill
+\noindent\begin{tikzpicture}
+  \fill[BCBlue] (0,0) rectangle (\textwidth, 2cm);
+  \fill[BCRed]  (0,2cm) rectangle (\textwidth, 2.25cm);
+  \node[anchor=west] at (1cm, 1cm)
+    {\color{BCDarkBlue}\bfseries\LARGE CS\,495 -- Data Science Project Practicum};
+  \node[anchor=east] at (\textwidth-1cm, 1cm)
+    {\color{BCDarkBlue}\LARGE Bellevue College \;\textbullet\; Spring 2026};
+\end{tikzpicture}
+
+\end{document}
