@@ -26,15 +26,19 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, Ellipse, Circle, FancyArrow
 import matplotlib.patches as mpatches
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+import matplotlib.image as mpimg
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import textwrap, os
 
 OUT    = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                       'CRR-Pipeline-Build-Flowchart.pdf')
+ICONS  = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                      'assets', 'icons')
 GITHUB = 'github.com/dantzlerdc/CS495-Deep-Scholar'
 FW, FH = 11.0, 8.5
-PAGES  = 5
+PAGES  = 6
 
 # ── Layer colour palette ──────────────────────────────────────────
 # (spine/node fill, dark border, badge/header, loop outline)
@@ -74,8 +78,6 @@ def page_header(ax, title, subtitle=''):
                                 facecolor=HDR_BG, zorder=10))
     ax.text(0.22, FH - 0.29, title, color='white', fontsize=11,
             fontweight='bold', va='center', ha='left', zorder=11)
-    ax.text(FW - 0.22, FH - 0.29, GITHUB, color='#88B4D8',
-            fontsize=7.5, va='center', ha='right', zorder=11)
     if subtitle:
         ax.text(FW / 2, FH - 0.92, subtitle, color=MUTED,
                 fontsize=8.5, style='italic', va='center', ha='center')
@@ -84,7 +86,7 @@ def page_header(ax, title, subtitle=''):
 def page_footer(ax, pn):
     ax.axhline(0.43, color='#B0BEC5', lw=0.6, xmin=0.03, xmax=0.97)
     ax.text(FW / 2, 0.24,
-            f'Page {pn} of {PAGES}  ·  CS495 Deep Scholar – Capstone Project 6  ·  {GITHUB}',
+            f'Page {pn} of {PAGES}  ·  CS495 Capstone Project-6',
             ha='center', va='center', fontsize=7, color='#8898A8')
 
 
@@ -215,9 +217,14 @@ def vert_badge(ax, cx, badge_cy, text, layer, badge_w=0.36, badge_h=1.10):
 # ── White description panel with bullet points ────────────────────
 
 def desc_panel(ax, xl, yb, w, h, title, bullets, layer):
-    """White rounded panel: coloured title bar + bullet body."""
+    """White rounded panel: coloured title bar + bullet body.
+
+    Title may contain '\n' to render on two lines; title bar grows
+    automatically so the second line isn't clipped.
+    """
     fc, bc, hc, _ = LC[layer]
-    title_h = 0.34
+    two_line = '\n' in title
+    title_h = 0.54 if two_line else 0.34
     # Outer card
     ax.add_patch(FancyBboxPatch(
         (xl, yb), w, h,
@@ -235,7 +242,7 @@ def desc_panel(ax, xl, yb, w, h, title, bullets, layer):
             color=bc, lw=1.5, zorder=7)
     ax.text(xl + w / 2, yb + h - title_h / 2, title,
             ha='center', va='center', fontsize=8, fontweight='bold',
-            color='white', zorder=8)
+            color='white', zorder=8, linespacing=1.1)
 
     # Bullets
     body_top  = yb + h - title_h - 0.10
@@ -261,7 +268,7 @@ def connector(ax, x1, y1, x2, y2, color=MUTED):
 # ─────────────────────────────────────────────────────────────────
 
 def _crr_tree_art(ax):
-    N, ys, xs, x0, y0 = 4, 0.60, 0.76, 6.20, 4.25
+    N, ys, xs, x0, y0 = 4, 0.60, 0.76, 6.55, 4.25
     nodes = {(k, j): (x0 + k * xs, y0 + (k / 2 - j) * ys)
              for k in range(N + 1) for j in range(k + 1)}
     for k in range(N):
@@ -298,8 +305,13 @@ def _crr_tree_art(ax):
 
 def page_cover(pdf):
     fig, ax = make_fig()
-    ax.add_patch(plt.Rectangle((0, 0), 5.55, FH, facecolor='#0B2041', zorder=0))
-    ax.add_patch(plt.Rectangle((5.53, 0), 0.07, FH, facecolor='#3A7BD5', zorder=1))
+    PANEL_W   = 5.85
+    PANEL_BOT = 0.55      # lift panel above footer strip
+    ax.add_patch(plt.Rectangle((0, PANEL_BOT), PANEL_W, FH - PANEL_BOT,
+                                facecolor='#0B2041', zorder=0))
+    ax.add_patch(plt.Rectangle((PANEL_W - 0.02, PANEL_BOT), 0.07,
+                                FH - PANEL_BOT,
+                                facecolor='#3A7BD5', zorder=1))
 
     ax.text(0.32, 7.58, 'CS495 Deep Scholar', color='#88B8E8',
             fontsize=11, fontweight='bold', va='center', ha='left', zorder=5)
@@ -308,38 +320,53 @@ def page_cover(pdf):
             va='center', ha='left', zorder=5, linespacing=1.3)
     ax.text(0.32, 5.90, 'Full Build Pipeline Flowchart',
             color='#88B8E8', fontsize=12, va='center', ha='left', zorder=5)
-    ax.plot([0.32, 5.18], [5.55, 5.55], color='#3A7BD5', lw=1.5, zorder=5)
+    ax.plot([0.32, PANEL_W - 0.40], [5.55, 5.55],
+            color='#3A7BD5', lw=1.5, zorder=5)
 
-    desc = ('A five-page walkthrough of every component across '
-            'three pipeline layers: CRR Pricing Engine (L1), '
-            'Prediction Market ML Extensions (L2), and the '
-            'Cross-Model Comparison (L3).')
-    for i, ln in enumerate(textwrap.wrap(desc, 36)):
-        ax.text(0.32, 5.22 - i * 0.32, ln, color='#C8DCF0',
+    ax.text(0.32, 5.22,
+            'A six-page walkthrough of every component across '
+            'the three pipeline layers:',
+            color='#C8DCF0', fontsize=9.2, va='center', ha='left', zorder=5)
+    bullets = [
+        '(L1)  CRR Pricing Engine',
+        '(L2)  Prediction Market ML Extensions',
+        '(L3)  Cross-Model Comparison',
+    ]
+    for i, b in enumerate(bullets):
+        ax.text(0.48, 4.65 - i * 0.40,
+                f'•  {b}', color='#C8DCF0',
                 fontsize=9.2, va='center', ha='left', zorder=5)
 
+    # Three colored boxes, widened with centered (tag + label) blocks
+    box_w   = 1.72
+    gap     = 0.10
+    total_w = 3 * box_w + 2 * gap
+    bx0     = (PANEL_W - total_w) / 2
     for i, (tag, lbl, clr) in enumerate([
         ('L1', 'CRR Pricing Engine',      '#163A8C'),
         ('L2', 'ML Extensions',           '#145A22'),
         ('L3', 'Cross-Model Comparison',  '#7A1E00'),
     ]):
-        bx = 0.38 + i * 1.68
-        ax.add_patch(FancyBboxPatch((bx, 0.72), 1.55, 0.82,
+        bx = bx0 + i * (box_w + gap)
+        ax.add_patch(FancyBboxPatch((bx, 1.55), box_w, 0.82,
                                      boxstyle='round,pad=0.05',
                                      facecolor=clr, edgecolor='none', zorder=5))
-        ax.text(bx + 0.22, 1.13, tag, color='white', fontsize=9.5,
-                fontweight='bold', va='center', ha='left', zorder=6)
-        ax.text(bx + 0.60, 1.13, lbl, color='#C8DCF0', fontsize=7.8,
-                va='center', ha='left', zorder=6)
+        cx = bx + box_w / 2
+        ax.text(cx, 1.96,
+                f'$\\bf{{{tag}}}$   {lbl}',
+                color='white', fontsize=8.4,
+                va='center', ha='center', zorder=6)
 
-    ax.text(0.32, 0.28,
-            'DeWayne Dantzler  ·  CS495 Capstone Project 6  ·  May 2026',
-            color='#607898', fontsize=8, va='center', ha='left', zorder=5)
+    # Byline lifted into blue panel, above PANEL_BOT
+    ax.text(0.32, 0.92,
+            'DeWayne Dantzler  ·  CS495 Capstone Project-6  ·  May 2026',
+            color='#88B8E8', fontsize=8, va='center', ha='left', zorder=5)
 
-    # Grid backdrop on right panel
+    # Grid backdrop on right panel — shifted right to clear tree migration
     for gy in np.arange(1.0, 8.0, 0.62):
-        ax.plot([5.65, FW], [gy, gy], color='#E8ECF2', lw=0.4, zorder=0)
-    for gx in np.arange(6.0, FW, 0.62):
+        ax.plot([PANEL_W + 0.10, FW], [gy, gy],
+                color='#E8ECF2', lw=0.4, zorder=0)
+    for gx in np.arange(PANEL_W + 0.45, FW, 0.62):
         ax.plot([gx, gx], [0, FH], color='#E8ECF2', lw=0.4, zorder=0)
 
     _crr_tree_art(ax)
@@ -366,24 +393,31 @@ def page_overview(pdf):
             color=BODY_C, fontsize=9, va='center', ha='left', linespacing=1.5)
     ax.plot([0.28, 2.40], [5.90, 5.90], color='#B0C0D0', lw=1.0)
 
-    # Layer chips
-    for i, (lbl, layer) in enumerate([
-        ('LAYER 1  CRR Pricing Engine',     'l1'),
-        ('LAYER 2  ML Extensions',          'l2'),
-        ('LAYER 3  Cross-Model Comparison', 'l3'),
+    # Layer chips — text stacked over two lines to keep boxes inside divider
+    chip_w, chip_h = 2.15, 0.62
+    for i, (tag, lbl, layer) in enumerate([
+        ('LAYER 1', 'CRR Pricing Engine',     'l1'),
+        ('LAYER 2', 'ML Extensions',          'l2'),
+        ('LAYER 3', 'Cross-Model Comparison', 'l3'),
     ]):
-        cy = 5.52 - i * 0.72
+        cy = 5.52 - i * 0.78
         fc, bc, hc, _ = LC[layer]
-        ax.add_patch(FancyBboxPatch((0.28, cy - 0.22), 2.10, 0.44,
+        ax.add_patch(FancyBboxPatch((0.28, cy - chip_h / 2),
+                                     chip_w, chip_h,
                                      boxstyle='round,pad=0.04',
-                                     facecolor=hc, edgecolor=bc, lw=1.5, zorder=3))
-        ax.text(0.46, cy, lbl, color='white', fontsize=7.8,
-                fontweight='bold', va='center', ha='left', zorder=4)
+                                     facecolor=hc, edgecolor=bc,
+                                     lw=1.5, zorder=3))
+        ax.text(0.28 + chip_w / 2, cy + 0.13, tag,
+                color='white', fontsize=8.0, fontweight='bold',
+                va='center', ha='center', zorder=4)
+        ax.text(0.28 + chip_w / 2, cy - 0.13, lbl,
+                color='white', fontsize=7.3,
+                va='center', ha='center', zorder=4)
 
-    ax.text(0.28, 3.62, 'make run-all',
+    ax.text(0.28, 3.35, 'make run-all',
             color=HDR_BG, fontsize=9.5, fontweight='bold',
             va='center', ha='left')
-    ax.text(0.28, 3.22,
+    ax.text(0.28, 2.95,
             'Chains all three layers\nin sequence automatically.',
             color=MUTED, fontsize=8, va='center', ha='left', linespacing=1.4)
 
@@ -391,7 +425,7 @@ def page_overview(pdf):
     ax.plot([2.55, 2.55], [0.55, 7.80], color='#D0D8E0', lw=1.0)
 
     # ── Spine ──────────────────────────────────────────────────
-    SPY = 4.25
+    SPY = 4.00
     spine(ax, 2.72, 10.65, SPY, color=SPINE_C, h=0.30, zorder=4)
 
     # ── Stage positions ───────────────────────────────────────
@@ -431,11 +465,11 @@ def page_overview(pdf):
     # Stage nodes, badges, panels (alternating above/below)
     node_size  = 0.68
     badge_w    = 0.36
-    badge_h    = 1.12
+    badge_h    = 1.00
     badge_gap  = 0.10     # gap between node and badge
     badge_pg   = 0.12     # gap between badge and panel
     panel_w    = 2.30
-    panel_h    = 2.05
+    panel_h    = 1.75
 
     for i, (cx, layer, badge_txt, bullets) in enumerate(stages):
         above = (i % 2 == 0)
@@ -498,11 +532,11 @@ def detail_page(pdf, page_num, hdr_title, hdr_subtitle,
     page_header(ax, hdr_title, hdr_subtitle)
 
     n   = len(components)
-    SPY = 4.25
+    SPY = 4.00
 
-    # Spine width
-    x0 = 0.70
-    x1 = FW - 0.50
+    # Spine width — inset so end-panels fit within the page margins
+    x0 = 0.85
+    x1 = FW - 0.85
     spine(ax, x0, x1, SPY, color=spine_color, h=0.28)
 
     # Node x-positions (evenly spaced)
@@ -520,13 +554,13 @@ def detail_page(pdf, page_num, hdr_title, hdr_subtitle,
     # Node size and panel dimensions
     node_sz   = 0.56
     badge_w   = 0.32
-    badge_h   = 0.96
+    badge_h   = 0.85
     badge_gap = 0.08
     badge_pg  = 0.10
     panel_w   = (x1 - x0) / (n - 1) - 0.08
     panel_w   = max(panel_w, 1.30)
     panel_w   = min(panel_w, 2.10)
-    panel_h   = 2.05
+    panel_h   = 1.75
 
     # Above panel ceiling and below panel floor
     above_top = FH - 0.65
@@ -615,8 +649,7 @@ L1_COMPS = [
       'Saved to greeks.csv']),
 
     ('edge', 'edge.py  Stage 4',
-     ['edge=(V_model−V_mkt)/V_mkt',
-      'Positive → BUY signal',
+     ['Positive → BUY signal',
       'Negative → SELL signal',
       '±2% dead-band filter',
       'Saved to edges.csv']),
@@ -628,14 +661,14 @@ L1_COMPS = [
       'Fractional = ruin protection',
       'Saved to kelly.csv']),
 
-    ('sim.py', 'simulation.py  Stage 5b',
+    ('sim.py', 'simulation.py\nStage 5b',
      ['1,000 trades, seed=42',
       'Sharpe ratio + max drawdown',
       'Hit rate per Kelly variant',
       '15% circuit breaker',
       'Saved to simulation.csv']),
 
-    ('main', 'main.py  Orchestrator',
+    ('main', 'main.py\nOrchestrator',
      ['Single pipeline entry point',
       'Reads & validates config.yaml',
       'Stages 1–5b in order',
@@ -694,29 +727,38 @@ L2_COMPS = [
 
 
 # ─────────────────────────────────────────────────────────────────
-#  PAGE 5 — LAYER 3 + BUILD COMMANDS
+#  PAGE 5 — LAYER 3: CROSS-MODEL COMPARISON
 # ─────────────────────────────────────────────────────────────────
 
-def page_l3_build(pdf):
+def page_layer3(pdf):
     fig, ax = make_fig()
-    page_header(ax, 'Layer 3 — Cross-Model Comparison  +  Build Commands',
-                'make run-comparison  ·  Requires L1 + L2 built first  ·  Outputs: l1_vs_l2_comparison.png  +  aapl_crr_comparison.html')
+    page_header(ax, 'Layer 3 — Cross-Model Comparison',
+                'make run-comparison  ·  Outputs: l1_vs_l2_comparison.png  +  aapl_crr_comparison.html')
 
     # ── Scientific question ────────────────────────────────────
-    ax.add_patch(FancyBboxPatch((0.38, 6.82), FW - 0.76, 0.86,
+    qbox_yb, qbox_h = 6.10, 1.35
+    qbox_xl = 0.80
+    qbox_w  = FW - 2 * qbox_xl
+    ax.add_patch(FancyBboxPatch((qbox_xl, qbox_yb), qbox_w, qbox_h,
                                  boxstyle='round,pad=0.05',
                                  facecolor='#FFF8E1', edgecolor='#F9A825',
                                  lw=1.8, zorder=3))
-    ax.text(FW / 2, 7.50, 'Core Scientific Question', ha='center',
-            va='center', fontsize=10, fontweight='bold', color='#BF360C', zorder=4)
-    ax.text(FW / 2, 7.10,
-            'Do CRR (mathematical, no-arbitrage) and XGBoost (empirical, ML) independently '
-            'agree on which AAPL options the crowd misprices?  '
-            'Agreement validates both models simultaneously; disagreement zones are findings in their own right.',
-            ha='center', va='center', fontsize=8.5, color=BODY_C, zorder=4, linespacing=1.4)
+    ax.text(FW / 2, qbox_yb + qbox_h - 0.28,
+            'Core Scientific Question', ha='center',
+            va='center', fontsize=10, fontweight='bold',
+            color='#BF360C', zorder=4)
+    qbody = textwrap.fill(
+        'Do CRR (mathematical, no-arbitrage) and XGBoost (empirical, ML) '
+        'independently agree on which AAPL options the crowd misprices? '
+        'Agreement validates both models simultaneously; disagreement '
+        'zones are findings in their own right.',
+        width=110)
+    ax.text(FW / 2, qbox_yb + 0.45, qbody,
+            ha='center', va='center', fontsize=8.5,
+            color=BODY_C, zorder=4, linespacing=1.4)
 
     # ── L3 spine + 2 nodes ────────────────────────────────────
-    SPY3 = 5.55
+    SPY3 = 4.75
     spine(ax, 1.0, FW - 0.5, SPY3, color=LC['l3'][2], h=0.26, zorder=4)
 
     l3_nodes = [
@@ -739,13 +781,15 @@ def page_l3_build(pdf):
     ax.annotate('', xy=(l3_nodes[0][0] - 0.33, SPY3),
                 xytext=(1.20, SPY3),
                 arrowprops=dict(arrowstyle='->', color=LC['l1'][2], lw=1.6), zorder=5)
-    ax.text(2.00, SPY3 + 0.18, 'edge_L1\n(RV30)',
-            ha='center', fontsize=6.8, color=LC['l1'][2], style='italic', linespacing=1.2)
+    ax.text(2.00, SPY3 + 0.35, 'edge_L1\n(RV30)',
+            ha='center', fontsize=8.5, fontweight='bold',
+            color=LC['l1'][2], style='italic', linespacing=1.2)
     ax.annotate('', xy=(l3_nodes[0][0] - 0.33, SPY3 - 0.22),
                 xytext=(1.20, SPY3 - 0.22),
                 arrowprops=dict(arrowstyle='->', color=LC['l2'][2], lw=1.6), zorder=5)
-    ax.text(2.00, SPY3 - 0.44, 'edge_L2\n(ML)',
-            ha='center', fontsize=6.8, color=LC['l2'][2], style='italic', linespacing=1.2)
+    ax.text(2.00, SPY3 - 0.50, 'edge_L2\n(ML)',
+            ha='center', fontsize=8.5, fontweight='bold',
+            color=LC['l2'][2], style='italic', linespacing=1.2)
 
     for i, (cx, full, bullets) in enumerate(l3_nodes):
         node_box(ax, cx, SPY3, 0.58, 'l3')
@@ -756,57 +800,130 @@ def page_l3_build(pdf):
         vert_badge(ax, cx, SPY3 - 0.30 - 0.50, str(i + 1), 'l3',
                    badge_w=0.32, badge_h=0.96)
 
-        panel_yb = 3.70
+        panel_yb = 1.10
         panel_w  = 4.10
+        panel_h_l3 = 2.40
         xl = cx - panel_w / 2
-        desc_panel(ax, xl, panel_yb, panel_w, 1.55, full, bullets, 'l3')
-        connector(ax, cx, SPY3 - 0.58, cx, panel_yb + 1.55, color=hc3)
+        desc_panel(ax, xl, panel_yb, panel_w, panel_h_l3, full, bullets, 'l3')
+        connector(ax, cx, SPY3 - 0.58, cx, panel_yb + panel_h_l3, color=hc3)
 
     # Arrow between L3 nodes
     ax.annotate('', xy=(l3_nodes[1][0] - 0.33, SPY3),
                 xytext=(l3_nodes[0][0] + 0.33, SPY3),
                 arrowprops=dict(arrowstyle='->', color='white', lw=1.6), zorder=5)
 
-    # ── Divider ────────────────────────────────────────────────
-    ax.axhline(3.42, color='#B0C0D0', lw=0.8, xmin=0.03, xmax=0.97)
-    ax.text(FW / 2, 3.26, 'MAKEFILE BUILD COMMANDS',
-            ha='center', va='center', fontsize=8.5, fontweight='bold', color=MUTED)
+    page_footer(ax, 5)
+    pdf.savefig(fig, bbox_inches='tight')
+    plt.close(fig)
 
-    # ── 4 build command cards ──────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────
+#  PAGE 6 — BUILD COMMANDS
+# ─────────────────────────────────────────────────────────────────
+
+def _icon_strip(ax, cx, yb, w, items):
+    """Render a row of (icon, label) cells under a box.
+
+    items: list of (kind, key_or_label, optional brand color)
+        kind='img'  → key is the basename of a PNG in assets/icons
+        kind='chip' → key is the label text; brand color used for fill
+    Layout: icons centered at (cx, yb + icon_h/2 + 0.05),
+            labels just below at (cx, yb - 0.05).
+    """
+    n = len(items)
+    if n == 0:
+        return
+    cell_w = w / n
+    icon_h = 0.34
+    chip_h = 0.30
+    for i, item in enumerate(items):
+        x = cx - w / 2 + (i + 0.5) * cell_w
+        kind = item[0]
+        if kind == 'img':
+            key, label = item[1], item[2]
+            try:
+                img = mpimg.imread(os.path.join(ICONS, f'{key}.png'))
+            except FileNotFoundError:
+                continue
+            h_px, w_px = img.shape[:2]
+            icon_w_max = cell_w * 0.78
+            icon_h_max = icon_h
+            zoom = min(icon_h_max * 100 / h_px,
+                       icon_w_max * 100 / w_px)
+            ab = AnnotationBbox(OffsetImage(img, zoom=zoom),
+                                 (x, yb + 0.05 + icon_h / 2),
+                                 frameon=False, zorder=8)
+            ax.add_artist(ab)
+            ax.text(x, yb - 0.06, label, ha='center', va='top',
+                    fontsize=6.6, color=BODY_C, zorder=9)
+        elif kind == 'chip':
+            label, color = item[1], item[2]
+            chip_w = cell_w * 0.55
+            ax.add_patch(FancyBboxPatch(
+                (x - chip_w / 2, yb + 0.05 + (icon_h - chip_h) / 2),
+                chip_w, chip_h,
+                boxstyle='round,pad=0.02',
+                facecolor=color, edgecolor='none', zorder=8))
+            ax.text(x, yb - 0.06, label, ha='center', va='top',
+                    fontsize=6.6, color=BODY_C, zorder=9)
+
+
+def page_build_commands(pdf):
+    fig, ax = make_fig()
+    page_header(ax, 'Makefile Build Commands',
+                'Run from project root  ·  Sequence: setup → run → run-layer2 → run-comparison')
+
+    # ── 4 build command cards arranged 1 × 4 horizontally ──────
     mk_cmds = [
         ('make setup',          'mk',
          ['Create .venv',
           'Install Poetry',
-          'Install all dependencies',
-          'Run once before any target']),
+          'Install dependencies',
+          'Run once'],
+         [('img', 'python', 'Python'),
+          ('img', 'poetry', 'Poetry'),
+          ('chip', 'pip', '#3776AB')]),
         ('make run',            'l1',
-         ['Runs main.py config.yaml',
+         ['main.py config.yaml',
           'All 6 Layer 1 stages',
           'Outputs → project/outputs/',
-          'Layer 1 complete']),
+          'Layer 1 complete'],
+         [('img', 'numpy', 'NumPy'),
+          ('img', 'pandas', 'pandas'),
+          ('img', 'matplotlib', 'Matplotlib'),
+          ('chip', 'yfinance', '#5F01D1'),
+          ('img', 'scipy', 'SciPy')]),
         ('make run-layer2',     'l2',
          ['Runs 6 Layer 2 modules',
           'Trains XGBoost models',
           'Outputs → project/outputs/',
-          'Layer 2 complete']),
+          'Layer 2 complete'],
+         [('img', 'pandas', 'pandas'),
+          ('img', 'numpy', 'NumPy'),
+          ('img', 'matplotlib', 'Matplotlib'),
+          ('img', 'xgboost', 'XGBoost'),
+          ('img', 'scikitlearn', 'scikit-learn')]),
         ('make run-comparison', 'l3',
          ['Runs L3 comparison scripts',
           'Requires L1 + L2 first',
           'Outputs: PNG + HTML',
-          'Layer 3 complete']),
+          'Layer 3 complete'],
+         [('img', 'pandas', 'pandas'),
+          ('img', 'matplotlib', 'Matplotlib'),
+          ('chip', 'Pillow', '#11A9DD')]),
     ]
-    MCW, MCH = 2.42, 1.68
-    gap = 0.28
-    x0m = (FW - 4 * MCW - 3 * gap) / 2
-    for i, (cmd, layer, bullets) in enumerate(mk_cmds):
-        xl = x0m + i * (MCW + gap)
-        desc_panel(ax, xl, 0.58, MCW, MCH, cmd, bullets, layer)
-        if i < len(mk_cmds) - 1:
-            ax.annotate('', xy=(xl + MCW + gap, 0.58 + MCH / 2),
-                        xytext=(xl + MCW, 0.58 + MCH / 2),
-                        arrowprops=dict(arrowstyle='->', color=MUTED, lw=1.4), zorder=5)
+    MCW, MCH = 2.32, 4.50
+    hgap   = 0.18
+    total  = 4 * MCW + 3 * hgap
+    x0m    = (FW - total) / 2
+    box_yb = 2.45            # bottom of each card
+    icon_yb = box_yb - 0.95  # bottom of icon strip
+    for i, (cmd, layer, bullets, icons) in enumerate(mk_cmds):
+        xl = x0m + i * (MCW + hgap)
+        desc_panel(ax, xl, box_yb, MCW, MCH, cmd, bullets, layer)
+        _icon_strip(ax, xl + MCW / 2, icon_yb, MCW, icons)
 
-    page_footer(ax, 5)
+    page_footer(ax, 6)
     pdf.savefig(fig, bbox_inches='tight')
     plt.close(fig)
 
@@ -836,7 +953,8 @@ def main():
                     'Build: make run-layer2  ·  Data: AAPL 2016-2020 Kaggle  ·  Outputs: project/outputs/',
                     'l2', LC['l2'][2], L2_COMPS)
 
-        page_l3_build(pdf)
+        page_layer3(pdf)
+        page_build_commands(pdf)
 
     print(f'Written → {OUT}')
 
