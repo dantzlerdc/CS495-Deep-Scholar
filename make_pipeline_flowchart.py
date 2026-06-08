@@ -821,51 +821,74 @@ def page_layer3(pdf):
 #  PAGE 6 — BUILD COMMANDS
 # ─────────────────────────────────────────────────────────────────
 
-def _icon_strip(ax, cx, yb, w, items):
-    """Render a row of (icon, label) cells under a box.
+def _draw_tool_cell(ax, x_left, y_center, cell_w, item):
+    """Render a single icon-left + name-right tool cell.
 
-    items: list of (kind, key_or_label, optional brand color)
-        kind='img'  → key is the basename of a PNG in assets/icons
-        kind='chip' → key is the label text; brand color used for fill
-    Layout: icons centered at (cx, yb + icon_h/2 + 0.05),
-            labels just below at (cx, yb - 0.05).
+    item: ('img', basename, label) or ('chip', label, brand_color).
+    The icon (or chip) is anchored near the cell's left edge; the
+    label sits to its right, vertically centered on y_center.
     """
-    n = len(items)
-    if n == 0:
-        return
-    cell_w = w / n
-    icon_h = 0.34
-    chip_h = 0.30
-    for i, item in enumerate(items):
-        x = cx - w / 2 + (i + 0.5) * cell_w
-        kind = item[0]
-        if kind == 'img':
-            key, label = item[1], item[2]
-            try:
-                img = mpimg.imread(os.path.join(ICONS, f'{key}.png'))
-            except FileNotFoundError:
-                continue
-            h_px, w_px = img.shape[:2]
-            icon_w_max = cell_w * 0.78
-            icon_h_max = icon_h
-            zoom = min(icon_h_max * 100 / h_px,
-                       icon_w_max * 100 / w_px)
-            ab = AnnotationBbox(OffsetImage(img, zoom=zoom),
-                                 (x, yb + 0.05 + icon_h / 2),
-                                 frameon=False, zorder=8)
-            ax.add_artist(ab)
-            ax.text(x, yb - 0.06, label, ha='center', va='top',
-                    fontsize=6.6, color=BODY_C, zorder=9)
-        elif kind == 'chip':
-            label, color = item[1], item[2]
-            chip_w = cell_w * 0.55
-            ax.add_patch(FancyBboxPatch(
-                (x - chip_w / 2, yb + 0.05 + (icon_h - chip_h) / 2),
-                chip_w, chip_h,
-                boxstyle='round,pad=0.02',
-                facecolor=color, edgecolor='none', zorder=8))
-            ax.text(x, yb - 0.06, label, ha='center', va='top',
-                    fontsize=6.6, color=BODY_C, zorder=9)
+    icon_size  = 0.28
+    icon_cx    = x_left + 0.14 + icon_size / 2
+    label_x    = icon_cx + icon_size / 2 + 0.08
+    kind = item[0]
+    if kind == 'img':
+        key, label = item[1], item[2]
+        try:
+            img = mpimg.imread(os.path.join(ICONS, f'{key}.png'))
+        except FileNotFoundError:
+            return
+        h_px, w_px = img.shape[:2]
+        zoom = min(icon_size * 100 / h_px, icon_size * 100 / w_px)
+        ab = AnnotationBbox(OffsetImage(img, zoom=zoom),
+                             (icon_cx, y_center),
+                             frameon=False, zorder=8)
+        ax.add_artist(ab)
+        ax.text(label_x, y_center, label,
+                ha='left', va='center', fontsize=7.2,
+                color=BODY_C, zorder=9)
+    elif kind == 'chip':
+        label, color = item[1], item[2]
+        chip_w = 0.32
+        chip_h = 0.22
+        ax.add_patch(FancyBboxPatch(
+            (icon_cx - chip_w / 2, y_center - chip_h / 2),
+            chip_w, chip_h,
+            boxstyle='round,pad=0.02',
+            facecolor=color, edgecolor='none', zorder=8))
+        ax.text(icon_cx + chip_w / 2 + 0.10, y_center, label,
+                ha='left', va='center', fontsize=7.2,
+                color=BODY_C, zorder=9)
+
+
+def tools_card(ax, xl, yb, w, h, title, bullets, tools, layer):
+    """Full make-target card: title + bullets + 'TOOLS' divider + 2-col icon grid."""
+    desc_panel(ax, xl, yb, w, h, title, bullets, layer)
+
+    # Divider line + 'TOOLS' label sits just below the bullets region.
+    divider_y = yb + 2.55
+    ax.plot([xl + 0.22, xl + w - 0.22],
+            [divider_y, divider_y],
+            color=MUTED, lw=0.7, alpha=0.7, zorder=8)
+    ax.text(xl + w / 2, divider_y + 0.18, 'TOOLS',
+            ha='center', va='center',
+            fontsize=7.2, fontweight='bold',
+            color=MUTED, zorder=9)
+
+    # 2-column tool grid below the divider.
+    cell_w = (w - 0.30) / 2
+    row_h  = 0.45
+    n      = len(tools)
+    for i, tool in enumerate(tools):
+        row = i // 2
+        col = i % 2
+        n_in_row = min(2, n - row * 2)
+        if n_in_row == 1:
+            x_left = xl + (w - cell_w) / 2
+        else:
+            x_left = xl + 0.15 + col * cell_w
+        y_center = divider_y - 0.35 - row * row_h
+        _draw_tool_cell(ax, x_left, y_center, cell_w, tool)
 
 
 def page_build_commands(pdf):
@@ -912,16 +935,14 @@ def page_build_commands(pdf):
           ('img', 'matplotlib', 'Matplotlib'),
           ('chip', 'Pillow', '#11A9DD')]),
     ]
-    MCW, MCH = 2.32, 4.50
+    MCW, MCH = 2.32, 5.10
     hgap   = 0.18
     total  = 4 * MCW + 3 * hgap
     x0m    = (FW - total) / 2
-    box_yb = 2.45            # bottom of each card
-    icon_yb = box_yb - 0.95  # bottom of icon strip
+    box_yb = 1.55
     for i, (cmd, layer, bullets, icons) in enumerate(mk_cmds):
         xl = x0m + i * (MCW + hgap)
-        desc_panel(ax, xl, box_yb, MCW, MCH, cmd, bullets, layer)
-        _icon_strip(ax, xl + MCW / 2, icon_yb, MCW, icons)
+        tools_card(ax, xl, box_yb, MCW, MCH, cmd, bullets, icons, layer)
 
     page_footer(ax, 6)
     pdf.savefig(fig, bbox_inches='tight')
