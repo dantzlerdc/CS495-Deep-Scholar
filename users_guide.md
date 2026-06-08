@@ -27,6 +27,21 @@ header-includes:
   - \usepackage{titling}
   - \pretitle{\begin{center}\Large\bfseries}
   - \posttitle{\end{center}}
+  - \usepackage{float}
+  - \floatplacement{figure}{H}
+  - \usepackage{titlesec}
+  - \usepackage{etoolbox}
+  - \definecolor{BCBlue}{HTML}{003D79}
+  - |
+    ```{=latex}
+    \titleformat{\section}{\Large\bfseries\color{BCBlue}}{\thesection}{1em}{}[{\color{BCBlue}\titlerule[2pt]}]
+    \titlespacing*{\section}{0pt}{20pt}{14pt}
+    \pretocmd{\section}{\newpage}{}{}
+    \setlength{\fboxsep}{0pt}
+    \setlength{\fboxrule}{0.5pt}
+    \let\oldincludegraphics\includegraphics
+    \renewcommand{\includegraphics}[2][]{\fbox{\oldincludegraphics[#1]{#2}}}
+    ```
 ---
 
 # Overview
@@ -44,6 +59,7 @@ The CRR Binomial Pricing Calculator is an interactive web application built with
 | Kelly Sizing | Converts edge into Full, Half, and Quarter Kelly position sizes |
 | Monte Carlo Simulation | Projects cumulative P\&L over 1,000 simulated trades |
 | Tree Animation | Animated binomial tree showing forward stock propagation and backward option induction |
+| Embedded User's Guide | This document is bundled inside the app on the User's Guide tab for offline reference |
 
 ## Intended Audience
 
@@ -76,6 +92,10 @@ streamlit run crr_binomial_pricing_calculator.py
 
 Streamlit will open a browser tab automatically (typically at `http://localhost:8501`). The app uses a wide layout for maximum chart visibility.
 
+![Initial view of the calculator on launch: the sidebar (Contract Parameters) is visible on the left with the default values pre-populated; the main content area shows the title banner, the seven-tab navigation strip, and a callout asking you to click **Calculate**.](UsersGuideScreens/crrr-calculator-frontscreen.png){width=70%}
+
+The very first view --- before you have changed any defaults or pressed **Calculate** --- is shown above. The sidebar holds the Contract Parameters block (Ticker, Option Type, Action, Underlying Price, Strike, Market Price, Implied Volatility), pre-populated with sensible defaults. The main content area shows the title, the seven-tab navigation strip, and a callout reading *"Enter your contract parameters in the sidebar and click Calculate to populate this tab."* No calculation has run yet --- the sidebar holds your inputs, ready for execution.
+
 ## Quick-Start Workflow
 
 1. Enter your ticker symbol in the sidebar (e.g., `AAPL`).
@@ -84,13 +104,17 @@ Streamlit will open a browser tab automatically (typically at `http://localhost:
 4. Set Days to Expiration, risk-free rate, and number of CRR steps.
 5. Configure Kelly Parameters (capital and minimum edge threshold).
 6. Click **Calculate**.
-7. Navigate the six tabs to explore pricing, Greeks, edge, sizing, simulation, and the animated tree.
+7. Navigate the seven tabs to explore pricing, Greeks, edge, sizing, simulation, the animated tree, and the embedded user's guide.
 
 # Sidebar Parameters
 
 All inputs are on the left sidebar. The app re-runs calculations only when you press **Calculate** --- sidebar changes alone do not trigger recalculation.
 
 ## Contract Parameters
+
+![Sidebar top section: Contract Parameters --- ticker, option type, action, underlying price, strike, market price, and implied volatility.](UsersGuideScreens/crr-calc-sidepanel-part1.png){height=6in}
+
+The top section of the sidebar collects everything that defines the option contract itself.
 
 ### Ticker (for RV30 lookup)
 
@@ -130,6 +154,10 @@ The annualized volatility implied by the market premium, expressed as a decimal 
 
 ## Time and Rate Parameters
 
+![Sidebar middle section: Time and rate inputs (DTE, risk-free rate, CRR steps) and the Kelly Parameters block (capital, minimum edge threshold).](UsersGuideScreens/crr-calc-sidepanel-part2.png){height=6in}
+
+The middle section of the sidebar holds the time, rate, and step-count parameters, then transitions into the Kelly inputs.
+
 ### Days to Expiration (DTE)
 
 Calendar days remaining until the option expires. Internally converted to years:
@@ -165,6 +193,10 @@ The minimum absolute edge (as a decimal) required before the model recommends a 
 
 ## Tree Animation
 
+![Sidebar bottom section: Tree Animation sliders (display steps, animation speed) and the Calculate button.](UsersGuideScreens/crr-calc-sidepanel-part3.png){width=3in}
+
+The final section of the sidebar configures the binomial tree animation on Tab 6 and presents the **Calculate** button that runs the full pipeline.
+
 ### Display Steps (N)
 
 The number of tree steps used only for the animated visualization (Tab 6). The actual pricing always uses the full N from the CRR Steps field above. Smaller display N (4--8) produces readable node labels; larger values (10--12) show tree structure at the cost of label legibility.
@@ -175,11 +207,21 @@ Pause duration between animation frames. Lower values (0.05--0.10) produce fast 
 
 # Tab 1 --- Pricing
 
-This tab presents the primary output of the CRR model and two diagnostic charts.
+This tab presents the primary output of the CRR model and two diagnostic charts. Every tab opens with an **About this screen** expander that summarizes what the screen shows, why it matters, and where the underlying logic is implemented in the research codebase.
+
+![Tab 1 "About this screen" expander: the orientation panel for the Pricing tab.](UsersGuideScreens/crr-calc-tab-pricing-about-section.png)
+
+## About This Screen
+
+**What this shows.** The Cox--Ross--Rubinstein American binomial pricer applied to your sidebar contract: **Model vs Market** (CRR fair value `V_model` vs market premium `V_market`), **Convergence** of `V_model` as lattice depth `N` grows, and the **Early Exercise Boundary** `S*` below which exercising an American put dominates holding.
+
+**Why it matters.** Pricing accuracy is hypothesis **H1** of the research --- every downstream decision (edge detection, regime classification, Kelly sizing) assumes `V_model` is calibrated. The boundary panel is the analytic capability that justifies the CRR lattice over the closed-form Black--Scholes model for American options.
+
+**Research link.** Implements *§3.4.1 --- Layer 1: CRR Pricing Engine*, validated in *§4.2--§4.4* of the capstone report. Maps to Project 6's "true `p` estimator" deliverable.
 
 ## Metric Row
 
-Three headline metrics appear at the top:
+Three headline metrics appear at the top of the tab:
 
 | Metric | Description |
 |--------|-------------|
@@ -191,11 +233,15 @@ A **positive** % Error means the model believes the contract is underpriced by t
 
 ## Model vs Market Bar Chart
 
+![Model vs Market bar chart: CRR model price (blue) vs observed market premium (orange) with dollar labels above each bar.](UsersGuideScreens/crr-calc-tab-pricing-model-vs-market-barchart.png)
+
 A side-by-side bar chart comparing the CRR model price (blue) and the market price (gold). Dollar values are printed above each bar.
 
 **How to interpret:** The visual gap between the two bars is proportional to the edge. A large gap warrants careful review of your IV input --- if the gap is consistently large, your implied volatility may not accurately reflect what the market is pricing.
 
 ## CRR Convergence vs Step Count Chart
+
+![CRR Convergence vs Step Count: model price plotted against N = 5, 10, 25, 50, 100, 150, 200, with the market price overlaid as a dashed reference line.](UsersGuideScreens/crr-calc-tab-pricing-convergence-steps.png)
 
 A line chart showing how the model price changes as N increases through the values `[5, 10, 25, 50, 100, 150, 200]`. The market price is drawn as a horizontal dashed line.
 
@@ -207,6 +253,8 @@ A line chart showing how the model price changes as N increases through the valu
 - Look for stabilization by N = 50--100. If the price is still moving significantly at N = 150, consider that the option may be deep in- or out-of-the-money, or that DTE is very short.
 
 ## Early Exercise Boundary (Puts Only)
+
+![Early Exercise Boundary: critical S* (amber dots) plotted against days-from-today, with the current spot $S = \$200$ shown as a dashed blue line.](UsersGuideScreens/crr-calc-tab-pricing-early-exercise-boundary.png)
 
 For American put options, a third chart appears below the two main charts. It plots the critical stock price $S^*$ at each time step --- the threshold below which immediate exercise is optimal.
 
@@ -222,7 +270,21 @@ For American put options, a third chart appears below the two main charts. It pl
 
 Option Greeks measure the sensitivity of the option price to changes in underlying variables. The app computes all five first-order Greeks using **finite-difference bumping** --- running the CRR model at slightly perturbed inputs and computing the numerical derivative.
 
+![Tab 2 "About this screen" expander: the orientation panel for the Greeks tab.](UsersGuideScreens/crr-calc-tab-greeks-about-section.png)
+
+## About This Screen
+
+**What this shows.** The five standard option Greeks --- $\Delta$ (Delta), $\Gamma$ (Gamma), $\Theta$ (Theta), $\nu$ (Vega), $\rho$ (Rho) --- plus $\sigma$ (IV, implied volatility input). Greeks are computed via centered finite differences over the full `N=100`-step CRR lattice. The table provides plain-English interpretation of each Greek's per-unit effect.
+
+**Why it matters.** Greeks decompose how the option price responds to changes in spot, volatility, time, and interest rates --- the standard tool for hedging and risk decomposition. Validating model Greeks against the platform-reported Fidelity values (target: ±10\% per Greek) confirms the lattice's partial derivatives are correctly computed.
+
+**Research link.** Implements *§3.4.2 --- Layer 1: Greeks*, validated in *§4.2.2 --- Break-Even and Greeks Validation*. Supports Project 6's "risk controls" and "decision theory" requirements.
+
 ## Greek Definitions and Interpretations
+
+![Greeks tab full view: top metric strip for the five Greeks plus the IV input, followed by the plain-English interpretation table for each Greek.](UsersGuideScreens/crr-calc-tab-greeks.png)
+
+The bottom table restates each Greek with a plain-English interpretation column. Use this when presenting results to a non-technical audience or double-checking the sign and magnitude of each sensitivity. The five Greek subsections below give the formal definition, sign conventions, and intended use of each.
 
 ### Delta ($\Delta$)
 
@@ -279,13 +341,23 @@ The change in option value per 100 basis point (1%) move in the risk-free rate.
 
 **Use:** Rho is the least impactful Greek for most short-dated options but matters for longer-dated LEAPS or in volatile interest rate environments.
 
-## Interpreting the Greeks Table
-
-The bottom table restates each Greek with a plain-English interpretation column. Use this when presenting results to a non-technical audience or double-checking the sign and magnitude of each sensitivity.
-
 # Tab 3 --- Edge & Signal
 
 This tab synthesizes the pricing output into a trading recommendation.
+
+![Tab 3 "About this screen" expander: the orientation panel for the Edge & Signal tab.](UsersGuideScreens/crr-calc-tab-edge-about-section.png)
+
+## About This Screen
+
+**What this shows.** The mispricing **edge** = `(V_model − V_market) / V_market`, expressed as a percentage; a categorical **trade signal** (BUY / SELL / NO TRADE) gated by the min-edge threshold; and the **volatility regime** (NORMAL / HERDING / COMPRESSION) derived from the IV/RV30 ratio. The horizontal gauge shows the edge magnitude with the no-trade zone shaded.
+
+**Why it matters.** This is the bridge from pricing to trading. The regime card surfaces the project's central finding: in the **herding regime**, two completely independent models (CRR and XGBoost) agree on mispricing direction (Pearson $r = 0.413$, $p = 2.4 \times 10^{-10}$), while in the normal regime correlation is statistically zero --- a Simpson's Paradox-type result.
+
+**The Layer-2 XGBoost classifier.** The CRR engine (Layer 1) is a deterministic no-arbitrage pricer. Layer 2 trains a **gradient-boosted decision tree ensemble** (XGBoost 2.0) on 47,578 historical AAPL contracts (2016--2020) to predict the *binary* ITM/OTM expiration outcome. Crucially, the L2 model uses **realized 30-day volatility (RV30) in place of implied volatility** as its volatility feature --- making it mathematically and informationally independent of Layer 1. XGBoost was chosen over logistic regression (too rigid for nonlinear interactions like moneyness × DTE) and neural networks (overkill for this dataset size, harder to calibrate). Feature importances by gain: **moneyness 38\%**, DTE 24\%, RV-IV spread 17\%, volume/OI ratio 11\%, bid-ask spread 10\%. The classifier is calibrated via **Platt scaling** on a held-out validation fold, producing a **Brier score of 0.211** --- below the 0.25 naive baseline (always predict 0.5) and below the market-implied benchmark.
+
+**Cross-validation insight.** Because L1 and L2 share *no inputs and no training signal*, their strong herding-regime correlation cannot be a calibration artifact. It is direct evidence that both models independently detect the same crowd-overpricing bias --- the strongest result of the research.
+
+**Research link.** Implements *§3.4.3 (Edge)*, *§3.4.5 (Layer 2 --- Independent Probability Estimator)*, *§3.4.6 (Crowd Bias Detector)*; cross-validation result in *§4.7*, feature importance in *§4.9*, Brier validation in *§4.10.2*. Maps to Project 6's "majority bettor / Bet-AI crowd bias detector" deliverable.
 
 ## Metric Row
 
@@ -297,7 +369,13 @@ This tab synthesizes the pricing output into a trading recommendation.
 
 ## Trading Signal Banner
 
-The large colored banner shows one of three signals:
+The large colored banner shows one of three signals --- BUY, SELL, or NO TRADE --- with a brief reason line beneath it. The three states are shown below.
+
+![BUY signal banner (green): "Model price > market price --- contract appears underpriced".](UsersGuideScreens/crr-calc-tab-edge-green-buy-banner.png)
+
+![SELL signal banner (navy): "Model price < market price --- contract appears overpriced".](UsersGuideScreens/crr-calc-tab-edge-blue-sell-banner.png)
+
+![NO TRADE signal banner (gray): "Direction mismatch --- edge favours the opposite action" or "Edge is below the minimum threshold".](UsersGuideScreens/crr-calc-tab-edge-grey-no-trade-banner.png)
 
 | Signal | Color | Meaning |
 |--------|-------|---------|
@@ -305,13 +383,17 @@ The large colored banner shows one of three signals:
 | **SELL** | Navy | Edge < $-$threshold AND action = sell (model price < market price) |
 | **NO TRADE** | Gray | Edge within the no-trade zone, or direction mismatch |
 
-Below the banner, a brief explanation states the specific reason for the signal (e.g., *"Model price > market price --- contract appears underpriced"*).
-
 **Important caveat:** The signal assumes your IV input is accurate and that the CRR model is the correct pricing engine. If your IV differs significantly from the market's implied volatility, the edge may be an artifact of the input rather than a genuine mispricing.
 
 ## Regime Banner
 
-When RV30 data is successfully fetched, a second colored banner appears showing the current volatility regime, defined by the ratio IV/RV30:
+When RV30 data is successfully fetched, a second colored banner appears showing the current volatility regime, defined by the ratio IV/RV30. The three regime banners in their distinct color treatments are shown below.
+
+![HERDING REGIME banner (burnt orange): IV / RV30 = 1.48, "Crowd overbidding inflates premiums above CRR fair value".](UsersGuideScreens/crr-calc-tab-edge-herding.png)
+
+![NORMAL REGIME banner (green): IV / RV30 = 0.86, "Efficient pricing, premiums reflect historical uncertainty without systemic overbidding".](UsersGuideScreens/crr-calc-tab-edge-normal-regime.png)
+
+![COMPRESSION REGIME banner (sky blue): IV / RV30 = 0.49, "Market is underpricing volatility relative to recent history".](UsersGuideScreens/crr-calc-tab-edge-compression-regime.png)
 
 | Ratio | Regime | Color | Meaning |
 |-------|--------|-------|---------|
@@ -322,6 +404,8 @@ When RV30 data is successfully fetched, a second colored banner appears showing 
 **How to use regime with the signal:** A BUY signal in a COMPRESSION regime is more compelling --- you are buying cheap protection in a market that is underpricing risk. A SELL signal in a HERDING regime is similarly reinforced --- you are collecting inflated premiums.
 
 ## Edge Gauge Bar Chart
+
+![Edge gauge horizontal bar chart: the edge value with the no-trade zone shaded in purple, bounded by the $\pm$ min-edge threshold lines.](UsersGuideScreens/crr-calc-tab-edge-horizontal-gauge.png)
 
 A horizontal bar chart displays the edge value on a numeric axis. Two vertical dashed lines mark the no-trade zone boundaries at $\pm\text{min\_edge}$, with the zone shaded in purple.
 
@@ -335,6 +419,18 @@ A horizontal bar chart displays the edge value on a numeric axis. Two vertical d
 # Tab 4 --- Kelly Sizing
 
 The Kelly Criterion is a mathematically optimal formula for allocating capital to a bet with a known edge and win probability.
+
+![Tab 4 "About this screen" expander: the orientation panel for the Kelly Sizing tab.](UsersGuideScreens/crr-calc-tab-kelly-about-section.png)
+
+## About This Screen
+
+**What this shows.** Position sizing recommendations under three variants of the **Kelly Criterion**: **Full Kelly** (`f* = (p·b − q)/b`), **Half Kelly** (`f*/2`), and **Quarter Kelly** (`f*/4`). The bar chart visualizes each fraction as a percentage of capital; the table translates fractions into dollar amounts based on your sidebar capital.
+
+**Why it matters.** The Kelly Criterion (Kelly, 1956; Thorp, 1969) is the mathematically optimal answer to "given an edge, how much should I bet?" Full Kelly maximizes long-run growth but exhibits high variance; fractional Kelly (MacLean et al., 2010) trades a modest expected-growth reduction for substantially lower drawdown --- the practical default for any real position sizer.
+
+**Layer-2 connection.** The win probability `p` used to compute `f*` can be derived either from the CRR edge (Layer 1, the source in this calculator) or from the **XGBoost classifier's calibrated probability** $\hat{p}_{\text{model}}$ (Layer 2). The classifier provides a *direct* probability estimate rather than an inferred one --- useful when the market price diverges materially from the model. In the walk-forward backtest, half-Kelly sizing applied to L2's calibrated probability produced the **\$2.9M cumulative P\&L** result reported on the Monte Carlo tab.
+
+**Research link.** Implements *§3.4.3 --- Mispricing Edge and Kelly Sizing*. Tests hypothesis **H3** in *§4.8*: fractional Kelly outperforms full Kelly in risk-adjusted backtest.
 
 ## Mathematical Foundation
 
@@ -362,6 +458,8 @@ The app computes three variants to address the practical over-aggressiveness of 
 
 ## Reading the Kelly Table
 
+![Kelly Sizing table: Full / Half / Quarter rows with fraction, percent of capital, dollar amount, and trade signal columns.](UsersGuideScreens/crr-calc-tab-kelly-part2.png)
+
 The table shows, for each variant:
 
 - **Fraction (f\*):** The decimal fraction of total capital to allocate.
@@ -372,6 +470,8 @@ The table shows, for each variant:
 When all fractions are `0.0000` (NO TRADE), the info box reminds you that edge is below the threshold and no position is recommended.
 
 ## Kelly Bar Chart
+
+![Kelly Position Sizing bar chart: Full Kelly (green), Half Kelly (blue), and Quarter Kelly (orange) shown as percentages of capital with the value labelled on each bar.](UsersGuideScreens/crr-calc-tab-kelly-bar-chart.png)
 
 Three bars (green, navy, gold) show the Full, Half, and Quarter Kelly fractions as percentages of capital. Use this chart to quickly visualize the sizing difference between variants.
 
@@ -385,6 +485,18 @@ Three bars (green, navy, gold) show the Full, Half, and Quarter Kelly fractions 
 
 The Monte Carlo tab projects the long-run P\&L trajectory of repeatedly applying the Kelly-sized strategy across 1,000 simulated trades.
 
+![Tab 5 "About this screen" expander: the orientation panel for the Monte Carlo tab.](UsersGuideScreens/crr-calc-tab-monte-carlo-about-section.png)
+
+## About This Screen
+
+**What this shows.** A **Monte Carlo simulation** of 1,000 hypothetical trades drawn from the empirical edge distribution (seed=42), with cumulative profit-and-loss curves overlaid for the three Kelly sizing variants. The summary table reports hit rate, total P\&L, max drawdown, and the annualized Sharpe ratio for each variant.
+
+**Why it matters.** A single-trade edge means little; persistent positive expected value across many trades is what matters. This Monte Carlo isolates the Layer-1 pipeline's behavior in isolation. The full **Layer-1 + Layer-2 walk-forward backtest** --- applying the CRR pricer, the XGBoost classifier, the regime detector, and the microstructure cost filter chronologically to four years of out-of-sample AAPL data --- produces **\$2.9M cumulative P\&L** with **max drawdown \< 15\%**, the project's headline empirical result.
+
+**Layer-2's role in the backtest.** XGBoost's calibrated probability $\hat{p}_{\text{model}}$ (Brier 0.211, well-calibrated in the 0.3--0.7 range) drives the position-entry filter: only contracts where both L1 and L2 agree on direction *and* exceed the regime-conditional edge threshold trigger a trade. The regime detector raises that threshold from 2\% to 8\% in herding mode, throttling the policy to high-conviction trades --- which is exactly when the cross-model agreement is strongest.
+
+**Research link.** Implements *§3.4.4 --- Layer 1: Monte Carlo Simulation*; full walk-forward result in *§4.8 / Figure 7*, statistical validation in *§4.10.3*. Maps to Project 6's "backtesting and simulation" deliverable.
+
 ## How the Simulation Works
 
 For each of the 1,000 trades, the simulator:
@@ -397,6 +509,8 @@ Only variants with Kelly fraction > 0 are simulated. If NO TRADE is signaled, th
 
 ## Cumulative P&L Chart
 
+![Monte Carlo Profit and Loss chart: cumulative P\&L over 1,000 trades for Full / Half / Quarter Kelly, with annualized Sharpe ratios shown in the legend.](UsersGuideScreens/crr-calc-tab-monte-carlo-part1.png)
+
 Three colored curves show the cumulative P\&L path for Full Kelly (green), Half Kelly (navy), and Quarter Kelly (gold). The legend includes the **Annualized Sharpe Ratio** for each variant.
 
 **How to interpret:**
@@ -408,7 +522,9 @@ Three colored curves show the cumulative P\&L path for Full Kelly (green), Half 
 
 ## Summary Statistics Table
 
-Below the chart, a table reports four statistics for each variant:
+![Monte Carlo summary statistics table: Hit Rate, Total P\&L, Max Drawdown, and Annualized Sharpe per variant.](UsersGuideScreens/crr-calc-tab-monte-carlo-part2.png)
+
+Below the chart, a table reports four statistics for each variant.
 
 | Statistic | Meaning |
 |-----------|---------|
@@ -427,7 +543,19 @@ Below the chart, a table reports four statistics for each variant:
 
 The Tree Animation tab provides an interactive visual explanation of how the CRR model actually computes an option price.
 
+![Tab 6 "About this screen" expander: the orientation panel for the Tree Animation tab.](UsersGuideScreens/crr-calc-tab-tree-about-section.png)
+
+## About This Screen
+
+**What this shows.** An animated visualization of the **CRR binomial lattice** at a small display step count (N=5--12 for clarity; actual pricing uses your sidebar N). **Phase 1 (forward)** builds the stock price tree --- each node moves up by $u = e^{\sigma\sqrt{\Delta t}}$ or down by $d = 1/u$. **Phase 2 (backward induction)** replaces stock prices with option values, highlighting **early-exercise nodes in purple** where intrinsic value beats continuation.
+
+**Why it matters.** The lattice is the central algorithm of the pricing engine, but normally invisible. This animation makes the math transparent and auditable: a user can see exactly how `V_model` is constructed from terminal payoffs back to today.
+
+**Research link.** Visualizes *§2.2 (CRR foundational equations)* and *§3.4.1 (backward induction)*. Supports the **transparency** significance argument in *§1.4*.
+
 ## What the Binomial Tree Shows
+
+![Tree Animation tab header: the display-step note, the node-color legend, and the "Animate Tree" button.](UsersGuideScreens/crr-calc-tab-tree-part1.png)
 
 The CRR binomial model discretizes time into $N_{\text{disp}}$ steps. At each step, the stock price can move up by factor $u$ or down by factor $d$, where:
 
@@ -446,9 +574,13 @@ This produces a **recombining lattice** --- an up move followed by a down move r
 
 ## Animation Phases
 
-Click **Animate Tree** to start the two-phase animation:
+Click **Animate Tree** to start the two-phase animation.
+
+![Forward Pass complete: the binomial lattice fully populated with stock prices from $S_0 = \$200$ at $t=0$ to the terminal nodes 30 days out.](UsersGuideScreens/crr-calc-tab-tree-forward-pass.png)
 
 **Phase 1 --- Forward Pass (left to right):** Stock price nodes are revealed column by column, simulating how the stock can evolve from today to expiration. Each node shows the dollar stock price at that step and state. This demonstrates the forward propagation of the underlying process.
+
+![Backward Induction complete: option values populated across the lattice, with green nodes where holding dominates and purple nodes where early exercise dominates.](UsersGuideScreens/crr-calc-tab-tree-backward-pass.png)
 
 **Phase 2 --- Backward Induction (right to left):** Starting at the terminal nodes (expiration), nodes flip from stock prices to option values. The backward induction computes:
 
@@ -469,6 +601,33 @@ Without clicking Animate, the tree displays the full forward pass (all stock pri
 2. Observe the purple early-exercise nodes on a deep in-the-money put. They cluster at the bottom-left of the tree, where the stock price has fallen well below strike.
 3. For calls on non-dividend-paying stocks, you should see **no purple nodes at all** --- early exercise of American calls is never optimal in this model.
 4. Slow the animation speed to 0.5--1.0 sec/step when explaining the model in a presentation.
+
+# Tab 7 --- User's Guide
+
+The seventh tab embeds this very document inside the calculator so the reference manual is always one click away --- no separate file open, no context switch out of the app.
+
+![User's Guide tab: a download button at the top followed by an inline PDF viewer that shows the bundled user-guide document.](UsersGuideScreens/crr-calc-tab-users-guide.png)
+
+## What This Tab Provides
+
+The tab is structured into three elements, top to bottom:
+
+1. **An orientation paragraph** that tells you the tab is the full reference manual and offers two ways to read it (download or inline).
+2. **A primary "Download User's Guide (PDF)" button** that streams the bundled PDF file to your browser's normal download flow.
+3. **An inline PDF viewer (iframe)** that renders the same PDF directly inside the tab so you can scroll, search, and follow the document outline without leaving the calculator.
+
+The downloaded copy is the most recent build of `Users-Guide-CRR-Binomial-Pricing-Calculator.pdf` produced from `users_guide.md` via Pandoc; the embedded viewer shows the same bytes encoded inline.
+
+## When to Use Each Path
+
+- **Use the inline viewer** for quick lookups while you are working with the calculator (for example, checking the meaning of the Min Edge Threshold while sizing a trade). The viewer supports the browser's standard PDF controls --- zoom, find, page navigation, and the document-outline panel on the left.
+- **Use the download button** when you want to read the guide offline, print it, share it with a collaborator, or annotate it in a dedicated PDF reader. The downloaded file is self-contained and includes the table of contents, the list of figures, and all cross-references.
+
+## Notes and Caveats
+
+- The PDF lives next to `crr_binomial_pricing_calculator.py` in the project root. If you move the calculator script, also move (or re-bundle) the user-guide PDF, or the tab will show an error pointing at the expected path.
+- The User's Guide tab is always available --- it does not require pressing **Calculate** first. The other six tabs show a placeholder until calculations have run.
+- Some browsers block embedded PDFs by default. If the inline viewer is blank but the download button still works, use the download path or check your browser's PDF settings.
 
 # Mathematical Reference
 
@@ -541,6 +700,10 @@ For very short-dated options (DTE < 5) or deep in-the-money options, the binomia
 ## Early exercise boundary disappears for part of the put's life
 
 The model found no nodes where early exercise was optimal for those time steps, typically because the put is out-of-the-money at those periods. This is expected behavior.
+
+## The embedded User's Guide viewer is blank
+
+Some browsers block inline PDFs by default. If you see a blank iframe but the **Download User's Guide (PDF)** button still works, either use the download path or enable PDF rendering in your browser's settings.
 
 # Limitations and Assumptions
 
