@@ -3,6 +3,7 @@
 import base64
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 import matplotlib.patches as mpatches
@@ -282,6 +283,18 @@ T = float(DTE) / 365.0
 
 
 # ── RV30 fetch ─────────────────────────────────────────────────────────────────
+@st.cache_data(show_spinner=False)
+def _load_guide_pdf(path_str: str, mtime: float) -> bytes:
+    """Load the User's Guide PDF bytes, cached by file mtime.
+
+    The mtime is part of the cache key, so updating the PDF on disk
+    automatically invalidates the cache and the new version is served
+    on the next rerun. Avoids re-reading a multi-MB file every Streamlit
+    interaction.
+    """
+    return Path(path_str).read_bytes()
+
+
 @st.cache_data(ttl=3600)
 def fetch_rv(tkr: str) -> dict | None:
     try:
@@ -625,7 +638,20 @@ with tabs[6]:
     guide_path = Path(__file__).parent / "Users-Guide-CRR-Binomial-Pricing-Calculator.pdf"
 
     if guide_path.exists():
-        pdf_bytes = guide_path.read_bytes()
+        # Cached load — re-reads automatically when the file's mtime changes
+        stat = guide_path.stat()
+        pdf_bytes = _load_guide_pdf(str(guide_path), stat.st_mtime)
+
+        # Version banner — confirms which build of the PDF is being served
+        size_mb  = stat.st_size / (1024 * 1024)
+        mod_date = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M")
+        st.markdown(
+            f"<div style='color:{LABEL_BLUE};font-size:0.9rem;margin:6px 0 10px 0'>"
+            f"📄 <strong>{guide_path.name}</strong>  ·  {size_mb:.2f} MB  ·  "
+            f"last updated {mod_date}"
+            "</div>",
+            unsafe_allow_html=True,
+        )
 
         st.download_button(
             label="📥  Download User's Guide (PDF)",

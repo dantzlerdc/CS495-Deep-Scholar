@@ -720,29 +720,25 @@
             font=\scriptsize\bfseries,minimum size=0.50cm,inner sep=0pt}]
 
         \node[nxtstep] (s1) at (0,0)
-          {Expand universe to SPY / QQQ / NDX options
-           for a broader cross-sectional market test};
+          {Expand option contracts to use other stock datasets
+           to validate the model against.};
         \node[num,left=0.20cm of s1.west] {1};
 
         \node[nxtstep,below=0.20cm of s1] (s2)
-          {Integrate LSTM volatility forecaster to replace
-           static IV inputs with dynamic IV surface predictions};
+          {Run the cross-sectional test across multiple expiration
+           cycles and multiple high-liquidity stocks
+           (e.g., NVDA, MSFT) to prove the pipeline's stability.};
         \node[num,left=0.20cm of s2.west] {2};
 
         \node[nxtstep,below=0.20cm of s2] (s3)
-          {Deploy live paper-trading loop via broker API
-           (IBKR / Alpaca) with real-time signal generation};
+          {Modernize the Layer 2 ML Model Architecture by using a
+           more state-of-art Deep Learning Model};
         \node[num,left=0.20cm of s3.west] {3};
 
         \node[nxtstep,below=0.20cm of s3] (s4)
-          {Extend pricer to multi-leg spreads ---
-           vertical, calendar, iron condor --- with joint Kelly sizing};
-        \node[num,left=0.20cm of s4.west] {4};
-
-        \node[nxtstep,below=0.20cm of s4] (s5)
           {Publish open-source framework and Streamlit
            calculator for community validation and peer review};
-        \node[num,left=0.20cm of s5.west] {5};
+        \node[num,left=0.20cm of s4.west] {4};
       \end{tikzpicture}
     \end{column}
 
