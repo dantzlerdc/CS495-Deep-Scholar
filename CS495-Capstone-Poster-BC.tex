@@ -112,30 +112,36 @@
     }
   };
 
-  % Title text on the right
+  % Title text on the right --- FULL width (the headline stays prominent)
   \node[anchor=west, inner sep=0pt, text width=\textwidth-32cm, align=left]
        at (32cm, 8.2cm) {%
     \color{BCDarkBlue}\fontsize{60}{72}\selectfont\bfseries
     Mathematical and Empirical Models in Agreement
   };
-  \node[anchor=west, inner sep=0pt, text width=\textwidth-32cm, align=left]
+
+  % Subtitle / author / course --- narrowed by ~7 cm to make room for the QR
+  \node[anchor=west, inner sep=0pt, text width=\textwidth-39cm, align=left]
        at (32cm, 5.0cm) {%
     \color{BCDarkBlue}\fontsize{36}{44}\selectfont
     Cross-Validating CRR Binomial Pricing and Machine Learning\\
     for Crowd Mispricing Detection in Equity Options
   };
-  \node[anchor=west, inner sep=0pt, text width=\textwidth-32cm, align=left]
+  \node[anchor=west, inner sep=0pt, text width=\textwidth-39cm, align=left]
        at (32cm, 2.7cm) {%
     \color{BCDarkBlue}\fontsize{30}{36}\selectfont
     \textbf{Author:} DeWayne Dantzler \quad\textbar\quad
     \textbf{Faculty Advisor:} Dr.~Pedro Albuquerque
   };
-  \node[anchor=west, inner sep=0pt, text width=\textwidth-32cm, align=left]
+  \node[anchor=west, inner sep=0pt, text width=\textwidth-39cm, align=left]
        at (32cm, 1.2cm) {%
     \color{BCDarkBlue}\fontsize{24}{30}\selectfont\itshape
     CS\,495 -- Data Science Project Practicum \;\textbullet\;
     Bellevue College \;\textbullet\; Spring 2026
   };
+
+  % QR code on the far right side of the banner, vertically centered on the subtitle block
+  \node[anchor=east] at (\textwidth - 1cm, 4.5cm)
+       {\fbox{\qrcode[height=5cm]{https://github.com/dantzlerdc/CS495-Deep-Scholar}}};
 \end{tikzpicture}
 
 \vspace{2cm}
