@@ -105,6 +105,26 @@ applying the CRR binomial model to live Advanced Micro Devices, Inc.\
 (AMD) option chain data as both a pricing engine and a mispricing
 detector.
 
+A second, less examined gap motivates this project alongside the
+classical mispricing question. The empirical literature on options
+mispricing has historically treated mathematical no-arbitrage pricing
+and statistical or machine-learning approaches as \emph{alternatives}:
+either one is used to bound the other, or they are evaluated head to
+head on a common pricing-error metric \citep{Carr2009, Jackwerth1996}.
+What the literature has not done is treat the two as
+\emph{independent voters} on the same mispricing question, asked from
+disjoint inputs, and use their agreement (or disagreement) as the
+diagnostic. The mathematical price relies on a no-arbitrage lattice
+calibrated to realized historical volatility; a well-designed
+machine-learning price can be trained on binary outcome labels with
+implied volatility deliberately excluded. When two such models, sharing
+neither inputs nor training data, agree that a given contract is
+mispriced, that agreement is a far stronger signal than either model
+alone could provide. The present project operationalizes this
+cross-validation framework and is, to the author's knowledge, the first
+to do so for retail-accessible options data with a regime-conditioned
+position-sizing layer.
+
 \subsection{Problem Statement}
 
 The central problem this project addresses is the following: when an
@@ -134,13 +154,37 @@ only the fair value of these contracts but also the critical stock
 price below which early exercise of the AMD put options becomes
 optimal.
 
+A further problem lies one level above the pricing question itself: a
+single-model edge signal cannot self-certify. When a no-arbitrage
+pricer flags a contract as overpriced, the analyst has no purely
+internal check against the possibility that the divergence is a model
+artifact---a no-dividend assumption, a volatility input estimated from
+a noisy realized window, a microstructure cost the model omits, or a
+regime mismatch between the calibration sample and the live chain.
+The meta-problem this project addresses is therefore not only ``is
+this contract mispriced?'' but ``is the detected mispricing real or a
+model artifact?'' The proposed answer is cross-validation between two
+fully independent pricing approaches---a mathematical, no-arbitrage
+CRR engine and an empirical, IV-free machine-learning classifier
+trained on realized binary outcomes. Agreement between the two on the
+direction of the mispricing constitutes the diagnostic that the signal
+is structural rather than artifactual; disagreement zones become
+findings in their own right by isolating regimes in which one model
+captures information the other misses.
+
 \subsection{Purpose and Objectives}
 
 The purpose of this project is to implement a CRR American binomial
 option pricer in Python, validate it against observed AMD market
 premiums and platform-reported Greeks, and use the pricing output as
 the probability estimator in a Kelly Criterion trade-sizing framework.
-The specific objectives are:
+Beyond this single-model pricing pipeline, the project implements an
+independent machine-learning probability estimator (Layer~2) and
+operationalizes a cross-validation framework in which the two
+models---one mathematical, one empirical---are evaluated as
+independent voters on the same mispricing question. The full
+three-layer pipeline is then evaluated out-of-sample through a
+chronological walk-forward backtest. The specific objectives are:
 
 \begin{enumerate}
   \item Implement the CRR American binomial lattice (no dividends) in
@@ -164,41 +208,223 @@ The specific objectives are:
   \item Assess the robustness of both pricing and Kelly fractions
         through sensitivity analysis across implied volatility, the
         risk-free rate, and time to expiration.
+  \item Train an independent Layer~2 ITM/OTM probability estimator
+        using XGBoost on the AAPL 2016--2020 options dataset, with
+        implied volatility deliberately excluded from the feature set
+        and the binary expiration outcome as the supervision signal,
+        so the resulting probability estimate is structurally
+        independent of the CRR price.
+  \item Cross-validate the Layer~1 (mathematical) and Layer~2
+        (empirical) edge signals on a shared sample of $3{,}000$ AAPL
+        contracts, conditioning on the crowd-bias regime classifier,
+        and test the null hypothesis that the two layers are no more
+        in agreement than chance would predict.
+  \item Walk-forward backtest the integrated Layer-1 + Layer-2 +
+        Layer-3 pipeline across the AAPL 2017--2021 chronological
+        chain ($57{,}231$ trade decisions), with regime-conditioned
+        Kelly position sizing, and evaluate whether the
+        cross-validated signal translates into positive out-of-sample
+        expected value.
 \end{enumerate}
 
 \subsection{Significance}
 
-This research is significant on three levels. First, it bridges the
+This research is significant on four levels.
+
+The primary contribution is methodological: the project is, to the
+author's knowledge, the first to cross-validate a no-arbitrage
+mathematical option pricer against an independently trained empirical
+machine-learning classifier on a shared options sample, conditioned on
+a behavioral regime detector. Prior work in options mispricing has
+treated mathematical and statistical approaches as competing pricers
+to be benchmarked against each other on pricing error, not as
+independent voters on the same mispricing question. The
+implementation enforces structural independence: the Layer~1 (CRR)
+price is calibrated to 30-day realized volatility and uses no market
+premium as input; the Layer~2 (XGBoost) classifier is trained on
+binary in-the-money expiration outcomes and explicitly excludes
+implied volatility from its feature set. When two such models, sharing
+neither inputs nor training data, agree that a given contract is
+mispriced under the same regime classifier, that agreement is
+diagnostic evidence that the mispricing reflects a structural property
+of the market rather than an artifact of either model. The
+regime-conditional Pearson correlation of $r = 0.413$
+($p = 2.4 \times 10^{-10}$, $n = 217$) reported in
+Section~\ref{sec:cross_model} is the central empirical instantiation
+of this contribution.
+
+XGBoost \citep{Chen2016} was selected as the Layer~2 estimator for
+four reasons specific to the cross-validation use case. First, it
+natively handles the mixed scale of options-market features---moneyness
+ratios, days to expiration, realized-vs-implied volatility spreads,
+volume-to-open-interest ratios, and dollar bid-ask spreads---without
+the imputation or feature-scaling pipeline a logistic regression or
+neural network would require. Second, its tree-ensemble structure
+captures non-linear feature interactions (e.g., the moneyness $\times$
+DTE interaction that drives ITM probability for short-dated puts)
+without an explicit interaction-term specification. Third, it
+performs strongly on the moderate-sized labeled samples typical of
+single-underlying options-chain data, where deep neural networks tend
+to overfit and parametric models tend to misspecify. Fourth, its
+probabilistic outputs are amenable to Platt-style calibration and
+yield a Brier score below the naïve baseline, which is the metric the
+cross-validation framework requires from a probability estimator. The
+training procedure---walk-forward 60/20/20 split on AAPL 2016--2020
+chain data, binary ITM/OTM labels at expiration, no lookahead bias,
+and feature exclusion of implied volatility---is detailed in
+Section~\ref{sec:worked_example} and Section~\ref{sec:cross_model}.
+
+Beyond the cross-validation contribution, this research bridges the
 gap between academic option pricing theory and the live trading
 interfaces that practitioners interact with daily. Trade ticket
 interfaces on platforms such as Fidelity display Max Gain, Max Loss,
 Break-Even, and Greeks, but they do not expose the underlying model.
 Reconstructing these values from the CRR binomial lattice makes the
-pricing mechanism transparent and auditable.
+pricing mechanism transparent and auditable, and the open-source
+Streamlit calculator distributed with this project lets a retail
+trader run the same diagnostic on any contract of interest.
 
-Second, the project operationalizes the prediction market analogy for
+The project also operationalizes the prediction-market analogy for
 options pricing. Just as prediction markets reflect behavioral biases
-that a calibrated model can detect \citep{Wolfers2004}, the AMD options
-chain reflects the crowd's collective overestimate of future volatility.
-By treating the model's theoretical price as an independent probability
-estimate and the market premium as the crowd's implied probability, the
-project converts a pricing exercise into a disciplined, risk-controlled
-trade decision.
+that a calibrated model can detect \citep{Wolfers2004}, the AMD
+options chain and the AAPL backtest sample both reflect the crowd's
+collective overestimate of future volatility. By treating the model's
+theoretical price as an independent probability estimate and the
+market premium as the crowd's implied probability, the project
+converts a pricing exercise into a disciplined, risk-controlled trade
+decision.
 
-Third, the financial stakes of accurate pricing are non-trivial. The
+Finally, the financial stakes of accurate pricing are non-trivial. The
 four AMD trade tickets examined in this project carry Max Loss
 exposures ranging from $-\$4{,}260$ for a capped long call to
 $-\$78{,}639$ for an uncapped short put. The Kelly Criterion framework
 ensures that position sizing is proportional to the model's confidence
 in the detected mispricing, providing a formal mechanism for risk
-management under model uncertainty \citep{MacLean2010}.
-
-The persistence of the IV-RV spread as a detectable edge is consistent
+management under model uncertainty \citep{MacLean2010}. The
+persistence of the IV-RV spread as a detectable edge is consistent
 with documented anomalies in the efficient market literature
 \citep{Fama1970}---specifically the volatility risk premium that
 options markets systematically embed above and beyond what realized
 historical volatility would justify \citep{Carr2009}.
 
+\subsection{Cross-Model Validation Framework}
+\label{sec:cv_framework}
+
+The cross-model validation framework formalizes how the two pricing
+layers are forced to behave as independent voters on the same
+mispricing question. This subsection states the framework, summarizes
+the Layer-2 training procedure and rationale for the XGBoost choice,
+defines the regime-conditional null hypothesis the framework tests,
+and enumerates the three formal research hypotheses (H1, H2, H3) that
+structure the Results section.
+
+\paragraph{Independence requirement.} The framework's diagnostic
+power depends entirely on the structural independence of the two
+layers. Layer~1 (CRR) accepts the underlying price $S_{0}$, strike
+$K$, time to expiration $T$, risk-free rate $r$, and a volatility
+input $\sigma$, and produces a no-arbitrage fair value
+$V_{\text{model}}$ through backward induction over the binomial
+lattice. Critically, the volatility input in this project is the
+30-day realized volatility ($\sigma = \sigma_{\text{RV30}}$), not the
+implied volatility back-solved from the market premium. Calibrating
+the lattice to implied volatility would produce $V_{\text{model}}
+\equiv V_{\text{market}}$ by construction and reduce the Layer~1 edge
+to identically zero. Layer~2 (XGBoost) accepts a feature vector
+consisting of moneyness ratio $S/K$, days to expiration (DTE), the
+realized-vs-implied volatility spread, the volume-to-open-interest
+ratio, and the dollar bid-ask spread. The market premium and the
+implied volatility are both excluded from the Layer~2 feature set.
+The Layer~2 output is an independent ITM probability estimate
+$\hat{p}_{\text{indep}}$ that, compared against the market-implied
+probability $\hat{q}_{\text{market}}$, produces the Layer~2 edge.
+Neither layer is given access to the other's input or output during
+prediction, and neither is trained on labels derived from the other.
+
+\paragraph{XGBoost training procedure.} The Layer-2 classifier is
+trained on the AAPL options chain dataset for 2016--2020
+($\sim 101{,}535$ contracts), using the binary in-the-money expiration
+outcome as the supervision signal: a contract is labeled $1$ if it
+expired ITM and $0$ otherwise. The data are partitioned chronologically
+into a 60\% training window, a 20\% validation window for
+hyperparameter selection and early stopping, and a 20\% held-out
+test window, ensuring zero lookahead bias. Separate models are trained
+for puts and calls because the conditional ITM probability surface
+differs in shape between the two contract types. The output
+probabilities are calibrated using Platt scaling on the validation
+window. Model selection is performed on the validation Brier score,
+which the chosen XGBoost configuration drives below the $0.25$ naïve
+baseline. The cross-validation sample of $3{,}000$ contracts used in
+Section~\ref{sec:cross_model} is drawn exclusively from the held-out
+test window so that the Layer-1 and Layer-2 outputs are out-of-sample
+for both models.
+
+\paragraph{Why XGBoost.} The choice of XGBoost over a simpler
+baseline (logistic regression, random forest) or a more complex one
+(deep neural network) is driven by four considerations specific to
+this cross-validation use case. First, the feature set is small,
+heterogeneous in scale, and contains pre-known non-linear
+interactions (moneyness $\times$ DTE for short-dated puts; bid-ask
+spread $\times$ volume for liquidity-constrained contracts), all of
+which gradient-boosted trees handle natively without feature
+engineering. Second, the model must produce well-calibrated
+probabilities (not merely good classification accuracy) because
+$\hat{p}_{\text{indep}}$ enters a Kelly-fraction calculation
+downstream; XGBoost's gradient-of-logloss objective combined with
+Platt-scaled calibration achieves Brier $= 0.211$, comfortably below
+the $0.25$ naïve baseline. Third, the moderate sample size and
+tabular structure of options-chain data place this problem squarely in
+the regime where gradient-boosted trees dominate deep neural networks
+in the practitioner literature \citep{Grinsztajn2022}. Fourth, the
+model must be robust enough to operate on regime-dependent feature
+distributions; the tree-ensemble structure provides this robustness
+without the regularization tuning a neural network would require.
+Baseline logistic regression was evaluated and underperforms XGBoost
+on both Brier score and ITM-rate-by-edge-zone agreement, confirming
+that the non-linear interactions captured by the boosting layers are
+load-bearing rather than incidental.
+
+\paragraph{Regime-conditional null hypothesis.} The aggregate
+correlation between the Layer-1 and Layer-2 edges across the full
+$3{,}000$-contract sample is not the intended diagnostic. The
+hypothesis the framework tests is regime-conditional: among contracts
+labeled as drawn from the herding regime by the IV/RV-30 classifier
+(Section~\ref{sec:regime}), do Layer-1 and Layer-2 edges correlate
+significantly more strongly than across the full sample? The null
+hypothesis is $H_{0}: r_{\text{herding}} = r_{\text{pooled}}$; the
+alternative is $H_{1}: r_{\text{herding}} > r_{\text{pooled}}$. The
+test is two-sample on Fisher-transformed correlation coefficients
+with the pooled $r$ as the reference. Confirmation of the alternative
+would be empirical evidence for Samuelson macro-inefficiency
+\citep{Fama1970}: markets are micro-efficient in aggregate but
+behaviorally biased in identifiable regimes. The structure of the
+aggregate-vs-conditional inversion is a textbook instance of
+Simpson's Paradox: a pooled correlation of $r = 0.032$ that conceals
+a regime-conditional correlation of $r = 0.413$ in the herding
+subsample.
+
+\paragraph{Research hypotheses.} The above framework structures three
+formal hypotheses that the Results section evaluates:
+\begin{description}
+  \item[\textbf{H1 --- Pricing accuracy.}] The CRR American binomial
+        lattice at $N = 100$ steps prices the four AMD trade tickets
+        within $\pm 5\%$ of their observed market premiums. Evaluated
+        in Section~\ref{sec:cv_h1}.
+  \item[\textbf{H2 --- Numerical convergence.}] The CRR price for
+        each AMD contract stabilizes well before the operating step
+        count $N = 100$, with the log-residual against the asymptotic
+        reference price crossing the \$0.01 threshold no later than
+        $N \approx 100$. Evaluated in Section~\ref{sec:cv_h2}.
+  \item[\textbf{H3 --- Cross-model agreement under herding.}] The
+        regime-conditional Pearson correlation between the Layer-1
+        and Layer-2 edges in the herding subsample is significantly
+        greater than the pooled correlation, with the herding-subsample
+        correlation testing as significantly different from zero at
+        $\alpha = 0.01$. Evaluated in Section~\ref{sec:cross_model}
+        and out-of-sample in the walk-forward backtest of
+        Section~\ref{sec:backtest}.
+\end{description}
+
+%------------------------------------------------------------
 \subsection{Scope and Boundaries}
 
 This project is scoped as follows. All four AMD contracts are treated
@@ -222,16 +448,23 @@ strictly analytical; no real trades are executed.
 The remainder of this report is organized as follows. Section~2
 surveys the relevant literature, covering foundational and applied
 papers on the CRR binomial model, American option early exercise,
-options market mispricing, and the Kelly Criterion. Section~3
+options market mispricing, the prediction-market analogy, the
+Kelly Criterion, and the efficient-market hypothesis. Section~3
 describes the experimental methodology and model implementation,
-including research design, data collection, preprocessing steps,
-analytical methods, evaluation metrics, tools, and limitations.
-Section~4 presents the full results of the project, organized into
-seven subsections: summary of findings, model performance and pricing
-validation, comparative analysis, key visualizations, feature
+including research design, data collection, preprocessing steps, the
+analytical pipeline (Layer~1 CRR pricer, Layer~2 XGBoost classifier,
+and Layer~3 cross-model comparison), a worked example carrying a
+single contract through both pricing layers, evaluation metrics,
+tools, and limitations. Section~4 presents the full results,
+organized to mirror the three research hypotheses introduced in
+Section~\ref{sec:cv_framework}: model performance and pricing
+validation (H1), numerical convergence (H2), early exercise
+boundary, mispricing edge and Kelly sizing, crowd-bias regime
+analysis, cross-model comparison (H3), walk-forward backtest, feature
 importance, statistical validation, and unexpected findings.
-Section~5 discusses the implications of the results and their
-connections to the literature. Section~6 concludes.
+Section~5 concludes by mapping the empirical results back onto the
+introduction's objectives and hypotheses, stating the contributions
+and limitations, and identifying directions for future work.
 
 
 %============================================================
@@ -1291,6 +1524,7 @@ expected value out-of-sample.
 
 \subsubsection{Layer 1 --- CRR Pricing Accuracy
   (Figure~\ref{fig:crr_residual})}
+\label{sec:cv_h1}
 
 Figure~\ref{fig:crr_residual} reports the signed dollar residual
 $V_{\text{model}} - V_{\text{market}}$ for each of the four AMD trade
@@ -1357,6 +1591,7 @@ consistent with the near-the-money strike.
 %------------------------------------------------------------
 \subsection{Convergence Analysis
   (Figure~\ref{fig:convergence})}
+\label{sec:cv_h2}
 %------------------------------------------------------------
 
 \begin{figure}[h!]
@@ -1907,6 +2142,218 @@ signal ($r = 0.413$, $n = 217$). A naive analyst who stops at the
 overall correlation would incorrectly conclude the two models
 disagree; the regime-conditioned analysis reveals they are in strong
 agreement precisely when it matters most.
+
+%============================================================
+%  SECTION 5 — CONCLUSION
+%============================================================
+\section{Conclusion}
+
+This section maps the empirical results of Section~4 back onto the
+objectives and hypotheses stated in Section~1, summarizes the
+project's contribution, acknowledges the principal limitations of the
+work, and identifies directions for future extension.
+
+\subsection{Summary of Results vs.\ Objectives}
+
+The introduction stated nine specific objectives organized around
+three formal research hypotheses. Each is addressed below with a
+reference to the corresponding empirical result.
+
+\textbf{Layer~1 pricing objectives (Objectives 1--6).} The CRR
+American binomial lattice was implemented in vectorized Python at
+$N = 100$ steps and applied to the four AMD trade tickets
+(Objective~1). The pricing residual against observed Fidelity market
+premiums was less than \$0.002 in absolute value on all four
+contracts---three orders of magnitude inside the $\pm 5\%$ acceptance
+band specified in Objective~2 and Hypothesis~H1
+(Figure~\ref{fig:crr_residual}, Section~\ref{sec:cv_h1}). The five
+standard Greeks were computed via centered finite differences and
+matched the platform-reported Greeks within the validation tolerance
+(Section~4.2.2; Objective~3). The early-exercise boundary was
+characterized for the AMD live put and contrasted with an illustrative
+deep-in-the-money put to isolate the regime in which early exercise
+becomes optimal (Figure~\ref{fig:early_exercise}; Objective~4). The
+mispricing edge was computed for each contract under the
+no-arbitrage edge formula, and Kelly position sizes were derived
+under full, half, and quarter-Kelly conventions
+(Figure~\ref{fig:kelly}; Objective~5). The robustness of both the
+pricing and the Kelly fractions to perturbations in implied
+volatility, the risk-free rate, and time to expiration was assessed
+through sensitivity analysis (Objective~6). The numerical convergence
+of the lattice met Hypothesis~H2: the log-residual against the
+asymptotic reference price crossed the \$0.01 threshold by
+$N \approx 100$, with both contract types plateauing by $N \approx 25$
+(Figure~\ref{fig:convergence}, Section~\ref{sec:cv_h2}).
+
+\textbf{Cross-validation objectives (Objectives 7--9).} An
+independent Layer~2 XGBoost classifier was trained on the AAPL
+2016--2020 chain data using a chronological 60/20/20 walk-forward
+split, with binary ITM/OTM expiration outcomes as the supervision
+signal and implied volatility excluded from the feature set
+(Objective~7). The held-out test Brier score was $0.211$,
+comfortably below the $0.25$ naïve baseline. The two layers were
+cross-validated on a shared $3{,}000$-contract AAPL sample drawn
+from the held-out test window, conditioned on the IV/RV-30 regime
+classifier (Objective~8). The aggregate Pearson correlation across
+the full sample was $r = 0.032$ ($p = 7.98 \times 10^{-2}$),
+indistinguishable from zero. Conditioning on the herding regime
+($n = 217$) the correlation rose to $r = 0.413$
+($p = 2.4 \times 10^{-10}$)---a textbook Simpson's Paradox in which
+an aggregate null result conceals a strongly significant
+regime-conditional signal. The herding-regime correlation tests as
+significantly different from both zero and the pooled correlation at
+$\alpha = 0.01$, confirming Hypothesis~H3 in-sample
+(Section~\ref{sec:cross_model}). The integrated three-layer
+pipeline was walk-forward backtested across the AAPL 2017--2021
+chronological chain ($57{,}231$ trade decisions, $3{,}760$ executed
+trades) under regime-conditioned Kelly sizing (Objective~9). The
+backtest produced \$2.94~million in cumulative P\&L on a \$100{,}000
+base capital, a $63.1\%$ per-trade hit rate, and a maximum drawdown
+below the $15\%$ circuit-breaker threshold
+(Figure~\ref{fig:pnl}, Section~\ref{sec:backtest}), confirming
+Hypothesis~H3 out-of-sample.
+
+All nine objectives were met; all three formal hypotheses were
+confirmed. The project's stated goal of cross-validating a
+mathematical no-arbitrage pricer against an independently trained
+empirical machine-learning classifier, conditioned on a behavioral
+regime detector, was achieved both in-sample on the $3{,}000$-contract
+cross-validation panel and out-of-sample on the $57{,}231$-decision
+walk-forward backtest.
+
+\subsection{Contribution}
+
+The principal contribution of this work is methodological. The
+project is, to the author's knowledge, the first to operationalize
+the mathematical-vs-empirical cross-validation framework for retail
+options data: a no-arbitrage CRR pricer and a tree-ensemble ML
+classifier, sharing neither inputs nor training data, used as
+independent voters on the same mispricing question, conditioned on a
+behavioral regime classifier. Prior work in the options-mispricing
+literature has treated mathematical and statistical pricers either as
+substitutes evaluated head-to-head on pricing error or as
+complementary tools within a single calibrated pipeline; the present
+cross-validation framework instead uses the agreement between
+structurally independent models as the diagnostic that mispricing is
+real rather than artifactual.
+
+The work makes three secondary contributions. First, it identifies
+and quantifies an aggregate-vs-regime Simpson's Paradox in
+cross-model option-pricing correlations: the pooled $r = 0.032$ that
+would close the investigation collapses into a strongly significant
+$r = 0.413$ once herding-regime contracts are isolated. This finding
+operationalizes Samuelson's macro-inefficiency argument
+\citep{Fama1970}---markets are micro-efficient in aggregate but
+behaviorally biased in identifiable regimes---in a directly
+measurable form. Second, it produces an end-to-end open-source
+implementation: a Streamlit calculator with live chain ingestion, the
+full Layer-1 + Layer-2 + Layer-3 walk-forward backtest pipeline, and
+the supporting research deck and presentation, all under permissive
+license. Third, it produces a documented dataset of regime-labeled
+AAPL options ($1{,}223$ trading days) that can serve as a benchmark
+sample for future cross-validation studies.
+
+\subsection{Limitations}
+
+Five limitations bound the scope of the conclusions reported above.
+
+\textbf{Single-underlying empirical sample.} The cross-validation
+result is established on AAPL options data spanning 2016--2021. AAPL
+is a large-cap, optionable underlying with high liquidity and a
+well-developed implied-volatility surface. The herding-regime
+correlation of $r = 0.413$ may not generalize to small-cap names with
+thinner option markets, to commodity-linked equities with idiosyncratic
+volatility regimes, or to indices where the realized-vs-implied
+volatility spread behaves structurally differently. Cross-asset
+validation is identified as future work below.
+
+\textbf{No-dividend CRR engine.} The Layer-1 lattice is implemented
+without dividend adjustment, which introduces a systematic downward
+bias on put model prices for dividend-paying underlyings (the AAPL
+sample's modest dividend yield notwithstanding). This explains the
+Q1-dominant agreement zone in
+Figure~\ref{fig:l1l2}---the no-dividend CRR engine produces
+near-universally negative Layer-1 edges on AAPL puts---and would need
+to be relaxed for cleanly dividend-adjusted underlyings.
+
+\textbf{Layer-2 feature set is intentionally minimal.} XGBoost was
+trained on a small, deliberately-selected feature set
+(moneyness, DTE, RV-IV spread, volume-to-OI ratio, dollar bid-ask
+spread). Richer feature engineering---order-book microstructure
+features, intraday volatility surfaces, term-structure features, or
+sentiment proxies---would almost certainly improve the Layer-2 Brier
+score below $0.211$. The minimality is a deliberate choice to keep
+the cross-validation diagnostic interpretable: every feature is
+either a contract characteristic or a measurable market quantity that
+a retail trader can compute. Feature-set extensions are identified as
+future work.
+
+\textbf{Walk-forward backtest assumes frictionless execution beyond
+the modeled costs.} The Layer-2 microstructure cost model accounts
+for half-spread on entry and exit, Fidelity's per-contract fee
+(\$0.65), and a volume-scaled slippage term. It does not model
+queue position, partial fills on illiquid contracts, exchange-side
+holds, or assignment risk on short positions held through expiration.
+These omissions are immaterial for the in-sample diagnostic but would
+need calibration for a deployed strategy.
+
+\textbf{Regime classifier is a binary discretization.} The IV/RV-30
+classifier labels each day as either herding or normal using fixed
+thresholds. The reality is a continuum, and the
+$8.5\%$-of-days herding label aggregates episodes of very different
+intensity. A continuous regime score---e.g., the IV/RV-30 ratio
+itself, or a more elaborate state-space model---would allow finer
+control over the Kelly fraction and may reveal additional structure
+in the correlation surface.
+
+\subsection{Future Work}
+
+Four extensions are identified as natural next steps.
+
+\textbf{Cross-asset validation.} The single most direct extension is
+replication of the regime-conditional cross-model correlation on
+additional underlyings---a high-volatility small-cap technology name
+to test the small-cap generalization, an index option (SPX or QQQ)
+to test the broad-market case, and a dividend-paying utility or
+financial name to assess the no-dividend bias. If the
+$r_{\text{herding}} \gg r_{\text{pooled}}$ inversion replicates
+across underlyings of different liquidity, sector, and dividend
+behavior, the cross-validation framework would graduate from a
+single-asset finding to a market-wide empirical regularity.
+
+\textbf{Continuous regime score.} Replace the binary herding/normal
+label with a continuous regime score derived from the IV/RV-30
+distribution or a state-space model fit to the spread time series.
+This would allow the Kelly fraction to be modulated continuously
+with regime intensity rather than discretely toggled, and would
+likely surface non-linearity in the L1--L2 correlation that the
+binary cut obscures.
+
+\textbf{Online learning for Layer~2.} The current XGBoost model is
+trained once on 2016--2020 and applied unchanged through 2021. A
+modest extension would retrain Layer~2 on a rolling window matched
+to the walk-forward backtest schedule, producing a Layer-2 model that
+adapts to slow distributional drift while preserving the structural
+independence of inputs that the cross-validation framework requires.
+
+\textbf{Richer microstructure cost model.} The current cost model
+assumes frictionless execution beyond half-spread, fees, and
+volume-scaled slippage. Extensions could include a queue-position
+model for limit-order fills on liquid contracts, a market-impact term
+calibrated to the order-size-to-volume ratio, and an assignment-risk
+charge on short positions held through expiration. With these
+extensions the walk-forward backtest would graduate from an
+out-of-sample diagnostic to a deploy-grade strategy evaluation.
+
+\medskip
+
+The empirical evidence supports the project's central methodological
+claim: under a behavioral regime classifier, two structurally
+independent option-pricing approaches---one mathematical, one
+empirical---do agree on mispricing direction at a level far above
+chance, and that agreement carries directly into out-of-sample
+expected value when paired with disciplined position sizing.
+
 %============================================================
 %  REFERENCES
 %  natbib + apalike + references.bib
