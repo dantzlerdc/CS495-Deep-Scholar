@@ -41,6 +41,31 @@
 \usepackage{indentfirst}
 
 %------------------------------------------------------------
+%  PAGE BREAK BEFORE EVERY TOP-LEVEL SECTION
+%  Redefine \section to issue \clearpage first so each
+%  \section{...} starts on a fresh page. Optional arguments
+%  (\section[Short]{Long}) still work because the original
+%  \section is invoked after the page break.
+%------------------------------------------------------------
+\let\oldsection\section
+\renewcommand{\section}{\clearpage\oldsection}
+
+%------------------------------------------------------------
+%  PAGE BREAK BEFORE EVERY SUBSECTION EXCEPT X.1
+%  Every \subsection{...} starts on a fresh page UNLESS it is
+%  the first subsection of its parent section (i.e., X.1).
+%  Mechanism: \section resets the subsection counter to 0;
+%  if the counter is still 0 when \subsection fires, this is
+%  X.1 and no page break is issued. If the counter is > 0,
+%  we are about to render X.2 or later and \clearpage runs.
+%------------------------------------------------------------
+\let\oldsubsection\subsection
+\renewcommand{\subsection}{%
+  \ifnum\value{subsection}>0 \clearpage\fi
+  \oldsubsection
+}
+
+%------------------------------------------------------------
 %  TITLE BLOCK
 %------------------------------------------------------------
 \title{
@@ -93,6 +118,7 @@ accommodation of discrete dividend payments. These two contributions
 remain the twin pillars of options pricing in both academic instruction
 and practitioner workflows.
 
+\newpage
 Despite the elegance of these theoretical frameworks, a persistent gap
 exists between the prices that models produce and the premiums that
 markets charge. Behavioral forces---herding around round strikes,
@@ -454,17 +480,19 @@ describes the experimental methodology and model implementation,
 including research design, data collection, preprocessing steps, the
 analytical pipeline (Layer~1 CRR pricer, Layer~2 XGBoost classifier,
 and Layer~3 cross-model comparison), a worked example carrying a
-single contract through both pricing layers, evaluation metrics,
-tools, and limitations. Section~4 presents the full results,
-organized to mirror the three research hypotheses introduced in
+single contract through both pricing layers, evaluation metrics, and
+tools. Section~4 presents the full results, organized to mirror the
+three research hypotheses introduced in
 Section~\ref{sec:cv_framework}: model performance and pricing
 validation (H1), numerical convergence (H2), early exercise
 boundary, mispricing edge and Kelly sizing, crowd-bias regime
 analysis, cross-model comparison (H3), walk-forward backtest, feature
 importance, statistical validation, and unexpected findings.
 Section~5 concludes by mapping the empirical results back onto the
-introduction's objectives and hypotheses, stating the contributions
-and limitations, and identifying directions for future work.
+introduction's objectives and hypotheses, stating the contributions,
+and identifying directions for future work. Section~\ref{sec:limitations}
+enumerates the limitations that bound the scope and generalizability
+of the findings.
 
 
 %============================================================
@@ -734,6 +762,7 @@ documents the spread and its persistence, and acknowledges the
 rational-compensation alternative as a limitation in
 Section~\ref{sec:limitations}.
 
+\newpage
 Samuelson's macro-inefficiency thesis provides additional theoretical
 grounding for the regime-dependent pattern reported in this project.
 Samuelson argued that markets can be micro-efficient---rationally
@@ -789,6 +818,7 @@ position size. Fractional Kelly is the practical recommendation under
 model uncertainty, which is the default condition for any
 single-model options pricer.
 
+\newpage
 \textit{Efficient market bounds.} \citet{Fama1970} establishes that
 semi-strong market efficiency would eliminate any persistent, risk-free
 pricing edge in publicly traded options. The IV-RV spread underlying
@@ -917,7 +947,7 @@ probability estimator and run the walk-forward backtest.
         derived model outputs are original work.
 \end{itemize}
 
-\medskip
+\newpage
 \noindent\textbf{Supplementary Dataset 1: AMD Historical Prices
 (Realized Volatility)}
 \begin{itemize}
@@ -956,6 +986,7 @@ Snapshots (Backtest Data)}
 \subsection{Data Preprocessing}
 %------------------------------------------------------------
 
+\enlargethispage{\baselineskip}
 All preprocessing is implemented in \texttt{data.py} and executed
 reproducibly via \texttt{make preprocess}. Steps are applied
 separately for Layer~1 (live snapshot) and Layer~2 (historical
@@ -1018,8 +1049,9 @@ chain data).
         tuning), and the final 20\% are held out as the test set,
         touched exactly once for final evaluation. Stratified
         splitting is not applied; the chronological ordering is
-        essential for simulating realistic out-of-sample performance.
-        All stochastic operations use \texttt{seed=42}.
+        essential for simulating realistic out-of-sample
+        performance. All stochastic operations use
+        \texttt{seed=42}.
 \end{enumerate}
 
 %------------------------------------------------------------
@@ -1226,6 +1258,7 @@ are computed only on the return sweep.
   \label{fig:worked_forward}
 \end{figure}
 
+\newpage
 \textbf{Backward induction --- option value at every node.}
 Starting at the terminal layer ($i = N$), each leaf is assigned its
 intrinsic value $V = \max(K - S, 0)$ for a put. At every interior
@@ -1259,6 +1292,7 @@ contract as overpriced.
   \label{fig:worked_backward}
 \end{figure}
 
+\newpage
 \textbf{Two-layer cross-validation on the same contract.} The
 Layer~2 XGBoost classifier is then evaluated on the same contract
 using its IV-free feature vector (moneyness, days to expiration,
@@ -1337,7 +1371,7 @@ Calibration / ECE &
 \end{tabular}
 \end{center}
 
-\medskip
+\newpage
 \noindent\textbf{Visualizations} saved to \texttt{project/outputs/}:
 \begin{itemize}
   \item \texttt{model\_vs\_market.png} ---
@@ -1397,85 +1431,6 @@ reproducibility: \texttt{make all} executes the full pipeline from
 data ingestion through report compilation. All stochastic operations
 use \texttt{seed=42}.
 
-%------------------------------------------------------------
-\subsection{Limitations}%
-\label{sec:limitations}
-%------------------------------------------------------------
-
-The following constraints bound the scope and generalizability of
-this project's findings:
-
-\begin{enumerate}
-  \item \textbf{Single underlying asset and snapshot.}  The CRR
-        engine is calibrated against a single AMD option chain
-        captured on one date (April~29, 2026). The mispricing
-        signals and Kelly fractions detected may not generalize to
-        other underlyings, sectors, or expiration cycles. AMD's
-        elevated implied volatility ($\approx 64$--$65\%$) reflects
-        semiconductor-sector conditions that may differ markedly
-        from broader market conditions.
-
-  \item \textbf{Historical chain proxy.}  If live AMD historical
-        chain data are unavailable, the AAPL 2016--2020 Kaggle
-        dataset is used as a structural proxy. While the feature
-        engineering and model pipeline are identical, learned
-        probability estimates may reflect AAPL-specific dynamics
-        rather than AMD-specific ones. Any substitution is
-        documented explicitly in the report and in
-        \texttt{data.py}.
-
-  \item \textbf{Constant volatility assumption.}  The CRR model
-        accepts a single implied volatility input per contract.
-        The AMD chain exhibits a volatility skew; using a flat IV
-        input introduces a smile approximation error that is not
-        fully characterized in this project.
-
-  \item \textbf{No dividend adjustment.}  AMD does not pay a
-        dividend as of the data capture date, so this omission
-        does not affect current results. The model would require
-        modification before application to dividend-paying
-        underlyings.
-
-  \item \textbf{Microstructure assumptions.}  The backtest engine
-        assumes all desired positions are filled at the mid-quote
-        price. Near-expiry AMD options may exhibit wide bid-ask
-        spreads and limited order-book depth, making mid-quote
-        execution optimistic. All assumptions are documented in
-        \texttt{micro\_cost.py}.
-
-  \item \textbf{Model risk.}  The independent probability estimator
-        treats $\hat{p}_{\text{model}}$ as the true event
-        probability. Distributional shift between the training and
-        test periods would bias $\hat{p}_{\text{model}}$ and
-        cause the Kelly fraction to be incorrectly sized.
-        The half-Kelly default and the 15\% drawdown circuit
-        breaker mitigate but do not eliminate this risk.
-  \newpage
-  \item \textbf{Ethics and responsible use.}  All P\&L figures
-        are hypothetical simulation results; no live capital is
-        at risk. Edge estimates depend on IV forecast accuracy
-        and ML model quality. Overconfident models can produce
-        systematically wrong sizing recommendations. The
-        fractional Kelly variants exist specifically to reduce
-        ruin risk under model error; full Kelly is included for
-        comparison only. This project must not be interpreted
-        as a recommendation to trade options or prediction
-        market contracts.
-
-  \item \textbf{Rational risk compensation alternative.}  The
-        IV-RV spread that drives the edge signal may reflect
-        rational compensation for jump risk and liquidity risk
-        rather than behavioral mispricing \citep{Fama1970}. Under
-        this interpretation, option buyers are not making a
-        cognitive error but paying a fair premium for tail
-        protection that realized volatility does not price.
-        The project does not adjudicate between the behavioral
-        and rational-compensation explanations; it documents
-        the spread and its persistence, and acknowledges this
-        as a fundamental ambiguity in interpreting any
-        IV-based edge signal.
-\end{enumerate}
-
 %============================================================
 %  SECTION 4 — RESULTS
 %============================================================
@@ -1522,8 +1477,7 @@ expected value out-of-sample.
 \subsection{Model Performance and Pricing Validation}
 %------------------------------------------------------------
 
-\subsubsection{Layer 1 --- CRR Pricing Accuracy
-  (Figure~\ref{fig:crr_residual})}
+\subsubsection{Layer 1 --- CRR Pricing Accuracy}
 \label{sec:cv_h1}
 
 Figure~\ref{fig:crr_residual} reports the signed dollar residual
@@ -1549,6 +1503,7 @@ visually indistinguishable.
   \label{fig:crr_residual}
 \end{figure}
 
+\newpage
 \textbf{How to read this figure.} A bar of height zero indicates exact
 agreement between the CRR model price and the observed Fidelity limit
 price. Positive bars correspond to a model price above market (the
@@ -1589,8 +1544,7 @@ to $+0.55$; puts produced $\Delta \approx -0.45$ to $-0.47$,
 consistent with the near-the-money strike.
 
 %------------------------------------------------------------
-\subsection{Convergence Analysis
-  (Figure~\ref{fig:convergence})}
+\subsection{Convergence Analysis}
 \label{sec:cv_h2}
 %------------------------------------------------------------
 
@@ -1627,6 +1581,7 @@ share identical market parameters and therefore identical model
 prices; trade direction is recorded as a sign convention on the
 edge term, not as a separate computation.
 
+\newpage
 \textbf{Why this matters.} Convergence confirms that $N = 100$ is
 not merely sufficient but conservative: the price has stabilized
 well before this step count, and the log-residual inset places the
@@ -1642,8 +1597,7 @@ oscillation in either panel further confirms numerical stability at
 the chosen step count.
 
 %------------------------------------------------------------
-\subsection{Early Exercise Boundary
-  (Figure~\ref{fig:early_exercise})}
+\subsection{Early Exercise Boundary}
 %------------------------------------------------------------
 
 \begin{figure}[h!]
@@ -1679,6 +1633,7 @@ new time step the backward-induction algorithm re-evaluates the
 optimal stopping condition, producing small alternating adjustments
 as the lattice parity switches between odd and even step counts.
 
+\newpage
 \textbf{Why this matters.} The American put's ability to be exercised
 early is the principal reason the CRR binomial model is required
 for this project; the Black--Scholes formula cannot price American
@@ -1698,8 +1653,7 @@ This result is consistent with hypothesis H2 and with the early
 exercise theory of \citet{Mou2022} and \citet{BaroneAdesi1987}.
 
 %------------------------------------------------------------
-\subsection{Mispricing Edge and Kelly Sizing
-  (Figure~\ref{fig:kelly})}
+\subsection{Mispricing Edge and Kelly Sizing}
 %------------------------------------------------------------
 
 \begin{figure}[h!]
@@ -1727,6 +1681,7 @@ shaded band spanning $\pm 2\%$ is the NO-TRADE zone: edges that
 small are within normal bid--ask noise and do not justify a position.
 Dashed orange lines mark the $\pm 2\%$ thresholds explicitly.
 
+\newpage
 The \textit{bottom panel} shows the resulting Kelly fractions
 (Full, Half, Quarter) as a percentage of available capital. Because
 every AMD ticket's edge lies inside the NO-TRADE zone, all fractions
@@ -1752,8 +1707,7 @@ limitation of single-snapshot analysis and motivates the
 historical backtest as the primary profitability evaluation.
 
 %------------------------------------------------------------
-\subsection{Crowd Bias Regime Analysis
-  (Figure~\ref{fig:regime})}
+\subsection{Crowd Bias Regime Analysis}
 \label{sec:regime}
 %------------------------------------------------------------
 
@@ -1793,6 +1747,7 @@ their axes and annotate the COVID extrema above the clip lines. This
 preserves the structure of the regime signal across the full
 1{,}223-day sample.
 
+\newpage
 The most striking feature is the \textbf{2020 COVID-19 event}, the
 clipped excursions in the top and middle panels. During this period,
 realized volatility dramatically exceeded implied volatility: the
@@ -1834,8 +1789,7 @@ subject to systematic aggregate mispricing under coordinated
 behavioral demand shocks.
 
 %------------------------------------------------------------
-\subsection{Cross-Model Comparison: Mathematical vs.\ Empirical
-  (Figure~\ref{fig:l1l2})}
+\subsection{Cross-Model Comparison: Mathematical vs.\ Empirical}
 \label{sec:cross_model}
 %------------------------------------------------------------
 
@@ -1913,6 +1867,7 @@ the premium. This is the put-overpricing behavioral bias documented
 by \citet{Jackwerth1996} and \citet{Thaler1988}: sellers of
 overpriced puts are compensated by the high realized ITM rate.
 
+\newpage
 \textbf{Regime-conditional correlation --- the cross-validation
 result.} Although the figure itself reports only the pooled
 $r = 0.032$, conditioning on the regime classifier from
@@ -1957,8 +1912,7 @@ risk premium (Layer~1) and the ML-estimated ITM probability bias
 is most systematically biased.
 
 %------------------------------------------------------------
-\subsection{Walk-Forward Backtest Results
-  (Figure~\ref{fig:pnl})}
+\subsection{Walk-Forward Backtest Results}
 \label{sec:backtest}
 %------------------------------------------------------------
 
@@ -1996,6 +1950,7 @@ execution, the average trade returned $\$781$ with a median of
 $\$1{,}220$, and the wins-to-losses split was $2{,}371$ to $1{,}389$,
 giving a hit rate of $63.1\%$.
 
+\newpage
 The cumulative curve tells a structured story in three phases. From
 \textbf{2017 to mid-2018}, the pipeline generated steady early
 gains of approximately $\$400{,}000$ as it entered trades aligned
@@ -2185,6 +2140,7 @@ asymptotic reference price crossed the \$0.01 threshold by
 $N \approx 100$, with both contract types plateauing by $N \approx 25$
 (Figure~\ref{fig:convergence}, Section~\ref{sec:cv_h2}).
 
+\newpage
 \textbf{Cross-validation objectives (Objectives 7--9).} An
 independent Layer~2 XGBoost classifier was trained on the AAPL
 2016--2020 chain data using a chronological 60/20/20 walk-forward
@@ -2253,59 +2209,6 @@ license. Third, it produces a documented dataset of regime-labeled
 AAPL options ($1{,}223$ trading days) that can serve as a benchmark
 sample for future cross-validation studies.
 
-\subsection{Limitations}
-
-Five limitations bound the scope of the conclusions reported above.
-
-\textbf{Single-underlying empirical sample.} The cross-validation
-result is established on AAPL options data spanning 2016--2021. AAPL
-is a large-cap, optionable underlying with high liquidity and a
-well-developed implied-volatility surface. The herding-regime
-correlation of $r = 0.413$ may not generalize to small-cap names with
-thinner option markets, to commodity-linked equities with idiosyncratic
-volatility regimes, or to indices where the realized-vs-implied
-volatility spread behaves structurally differently. Cross-asset
-validation is identified as future work below.
-
-\textbf{No-dividend CRR engine.} The Layer-1 lattice is implemented
-without dividend adjustment, which introduces a systematic downward
-bias on put model prices for dividend-paying underlyings (the AAPL
-sample's modest dividend yield notwithstanding). This explains the
-Q1-dominant agreement zone in
-Figure~\ref{fig:l1l2}---the no-dividend CRR engine produces
-near-universally negative Layer-1 edges on AAPL puts---and would need
-to be relaxed for cleanly dividend-adjusted underlyings.
-
-\textbf{Layer-2 feature set is intentionally minimal.} XGBoost was
-trained on a small, deliberately-selected feature set
-(moneyness, DTE, RV-IV spread, volume-to-OI ratio, dollar bid-ask
-spread). Richer feature engineering---order-book microstructure
-features, intraday volatility surfaces, term-structure features, or
-sentiment proxies---would almost certainly improve the Layer-2 Brier
-score below $0.211$. The minimality is a deliberate choice to keep
-the cross-validation diagnostic interpretable: every feature is
-either a contract characteristic or a measurable market quantity that
-a retail trader can compute. Feature-set extensions are identified as
-future work.
-
-\textbf{Walk-forward backtest assumes frictionless execution beyond
-the modeled costs.} The Layer-2 microstructure cost model accounts
-for half-spread on entry and exit, Fidelity's per-contract fee
-(\$0.65), and a volume-scaled slippage term. It does not model
-queue position, partial fills on illiquid contracts, exchange-side
-holds, or assignment risk on short positions held through expiration.
-These omissions are immaterial for the in-sample diagnostic but would
-need calibration for a deployed strategy.
-
-\textbf{Regime classifier is a binary discretization.} The IV/RV-30
-classifier labels each day as either herding or normal using fixed
-thresholds. The reality is a continuum, and the
-$8.5\%$-of-days herding label aggregates episodes of very different
-intensity. A continuous regime score---e.g., the IV/RV-30 ratio
-itself, or a more elaborate state-space model---would allow finer
-control over the Kelly fraction and may reveal additional structure
-in the correlation surface.
-
 \subsection{Future Work}
 
 Four extensions are identified as natural next steps.
@@ -2353,6 +2256,87 @@ independent option-pricing approaches---one mathematical, one
 empirical---do agree on mispricing direction at a level far above
 chance, and that agreement carries directly into out-of-sample
 expected value when paired with disciplined position sizing.
+
+%============================================================
+%  SECTION 6 — LIMITATIONS
+%============================================================
+\section{Limitations}
+\label{sec:limitations}
+
+The following constraints bound the scope and generalizability of
+this project's findings:
+
+\begin{enumerate}
+  \item \textbf{Single underlying asset and snapshot.}  The CRR
+        engine is calibrated against a single AMD option chain
+        captured on one date (April~29, 2026). The mispricing
+        signals and Kelly fractions detected may not generalize to
+        other underlyings, sectors, or expiration cycles. AMD's
+        elevated implied volatility ($\approx 64$--$65\%$) reflects
+        semiconductor-sector conditions that may differ markedly
+        from broader market conditions.
+
+  \item \textbf{Historical chain proxy.}  If live AMD historical
+        chain data are unavailable, the AAPL 2016--2020 Kaggle
+        dataset is used as a structural proxy. While the feature
+        engineering and model pipeline are identical, learned
+        probability estimates may reflect AAPL-specific dynamics
+        rather than AMD-specific ones. Any substitution is
+        documented explicitly in the report and in
+        \texttt{data.py}.
+
+  \item \textbf{Constant volatility assumption.}  The CRR model
+        accepts a single implied volatility input per contract.
+        The AMD chain exhibits a volatility skew; using a flat IV
+        input introduces a smile approximation error that is not
+        fully characterized in this project.
+
+  \item \textbf{No dividend adjustment.}  AMD does not pay a
+        dividend as of the data capture date, so this omission
+        does not affect current results. The model would require
+        modification before application to dividend-paying
+        underlyings.
+
+  \item \textbf{Microstructure assumptions.}  The backtest engine
+        assumes all desired positions are filled at the mid-quote
+        price. Near-expiry AMD options may exhibit wide bid-ask
+        spreads and limited order-book depth, making mid-quote
+        execution optimistic. All assumptions are documented in
+        \texttt{micro\_cost.py}.
+
+  \newpage
+  \item \textbf{Model risk.}  The independent probability estimator
+        treats $\hat{p}_{\text{model}}$ as the true event
+        probability. Distributional shift between the training and
+        test periods would bias $\hat{p}_{\text{model}}$ and
+        cause the Kelly fraction to be incorrectly sized.
+        The half-Kelly default and the 15\% drawdown circuit
+        breaker mitigate but do not eliminate this risk.
+
+  \item \textbf{Ethics and responsible use.}  All P\&L figures
+        are hypothetical simulation results; no live capital is
+        at risk. Edge estimates depend on IV forecast accuracy
+        and ML model quality. Overconfident models can produce
+        systematically wrong sizing recommendations. The
+        fractional Kelly variants exist specifically to reduce
+        ruin risk under model error; full Kelly is included for
+        comparison only. This project must not be interpreted
+        as a recommendation to trade options or prediction
+        market contracts.
+
+  \item \textbf{Rational risk compensation alternative.}  The
+        IV-RV spread that drives the edge signal may reflect
+        rational compensation for jump risk and liquidity risk
+        rather than behavioral mispricing \citep{Fama1970}. Under
+        this interpretation, option buyers are not making a
+        cognitive error but paying a fair premium for tail
+        protection that realized volatility does not price.
+        The project does not adjudicate between the behavioral
+        and rational-compensation explanations; it documents
+        the spread and its persistence, and acknowledges this
+        as a fundamental ambiguity in interpreting any
+        IV-based edge signal.
+\end{enumerate}
 
 %============================================================
 %  REFERENCES
