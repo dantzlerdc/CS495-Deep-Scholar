@@ -35,3 +35,9 @@ project/outputs/*.csv
 *.synctex.gz
 *.fls
 *.fdb_latexmk
+
+# Render-artifact PNGs in previews/ (pdftoppm exports and slide previews)
+previews/final_*.png
+previews/slide?_preview-*.png
+previews/slide*_preview_page-*.png
+previews/*.textClipping

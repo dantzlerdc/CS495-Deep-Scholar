@@ -33,6 +33,7 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc,shapes.geometric}
 \usepackage{graphicx}
+\graphicspath{{./}{assets/figures/}{previews/}}
 \usepackage{xcolor}
 \usepackage{adjustbox}
 \usepackage{lmodern}
@@ -119,7 +120,7 @@
 
   % Slide-1 / cover-slide thumbnail on the right
   \node[anchor=north east] at ($(current page.north east) + (-2cm, -1.5cm)$)
-    {\includegraphics[width=20cm, keepaspectratio]{previews/cover_slide.png}};
+    {\includegraphics[width=20cm, keepaspectratio]{Poster-Cover.png}};
 \end{tikzpicture}
 
 \vspace*{14cm}
@@ -141,14 +142,14 @@
       \centering
       \textbf{\large Forward Pass}\\[0.15cm]
       \includegraphics[width=\linewidth,keepaspectratio]
-        {previews/Slide-Forward-Pass.png}\\[0.15cm]
+        {Poster-Forward-Pass.png}\\[0.15cm]
       {\footnotesize Stock-price lattice using
        $u = e^{\sigma\sqrt{\Delta t}}$, $d = 1/u$, $p^{*} = 0.481$}
     \column{0.49\linewidth}
       \centering
       \textbf{\large Backward Induction}\\[0.15cm]
       \includegraphics[width=\linewidth,keepaspectratio]
-        {previews/Slide-Backward-Pass.png}\\[0.15cm]
+        {Poster-Backward-Pass.png}\\[0.15cm]
       {\footnotesize At every node:
        $V = \max\bigl(\text{intrinsic},\ e^{-r\Delta t}(p^{*}V_{u} + qV_{d})\bigr)$}
   \end{columns}
@@ -158,7 +159,7 @@
 \begin{block}{Contract A Result: Two Independent Models Agree}
   \centering
   \includegraphics[height=14cm,keepaspectratio]
-    {previews/Slide-Option-Pricing-Results.png}\\[0.2cm]
+    {Poster-Option-Pricing-Results.png}\\[0.2cm]
   {\small
    Layer 1 (CRR) edge $= -21.5\%$ and Layer 2 (XGBoost) edge $= -3.2\%$:
    \textbf{both models say SELL} on this real AAPL put.\ \
@@ -169,7 +170,7 @@
 \begin{block}{Cross-Model Edge Agreement on AAPL Options}
   \centering
   \includegraphics[height=14cm,keepaspectratio]
-    {previews/poster/poster_hero_scatter.png}\\[0.2cm]
+    {Poster-Hero-Scatter.png}\\[0.2cm]
   {\small
    Pearson correlation coefficient
    $r = 0.413$ (herding) vs $r \approx 0$ (normal),
@@ -189,7 +190,7 @@
 \begin{block}{Live Demo: Interactive CRR Binomial Pricing Calculator}
   \centering
   \includegraphics[width=\linewidth,keepaspectratio]
-    {previews/crr-binomial-pricing-calculator.png}\\[0.15cm]
+    {Poster-Calculator-Hero.png}\\[0.15cm]
   {\small
    Streamlit application $\cdot$ runs locally on any laptop with Python 3.13
    $\cdot$ ticker-agnostic (live RV30 fetch via yfinance) $\cdot$

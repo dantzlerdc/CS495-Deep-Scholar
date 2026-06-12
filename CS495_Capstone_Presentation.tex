@@ -4,6 +4,7 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta,fit,backgrounds}
 \usepackage{graphicx}
+\graphicspath{{./}{slides/figures/}{previews/}{assets/figures/}}
 \usepackage{booktabs}
 \usepackage{xcolor}
 \usepackage{fontenc}
@@ -192,7 +193,7 @@
 \begin{frame}[plain]
   \begin{tikzpicture}[remember picture,overlay]
     \node[anchor=south west,inner sep=0pt] at (current page.south west)
-      {\includegraphics[width=\paperwidth,height=\paperheight]{previews/cover_slide.png}};
+      {\includegraphics[width=\paperwidth,height=\paperheight]{Slide-Cover.png}};
   \end{tikzpicture}
 \end{frame}
 
@@ -382,7 +383,7 @@
     \begin{column}{0.58\textwidth}
       \centering
       \adjustbox{max width=\linewidth,max height=5.8cm,keepaspectratio}{%
-        \includegraphics{previews/Slide-Option-Contract.png}}
+        \includegraphics{Slide-Option-Contract.png}}
     \end{column}
 
     \begin{column}{0.40\textwidth}
@@ -427,7 +428,7 @@
 
   \begin{center}
     \adjustbox{max width=0.92\textwidth,max height=5.3cm,keepaspectratio}{%
-      \includegraphics{previews/Slide-Forward-Pass.png}}
+      \includegraphics{Slide-Forward-Pass.png}}
   \end{center}
 
   \vspace{0.05em}
@@ -458,7 +459,7 @@
 
   \begin{center}
     \adjustbox{max width=0.92\textwidth,max height=5.3cm,keepaspectratio}{%
-      \includegraphics{previews/Slide-Backward-Pass.png}}
+      \includegraphics{Slide-Backward-Pass.png}}
   \end{center}
 
   \vspace{0.05em}
@@ -796,7 +797,7 @@
     \begin{column}{0.58\textwidth}
       \centering
       \adjustbox{max width=\linewidth,max height=5.8cm,keepaspectratio}{%
-        \includegraphics{previews/crr-binomial-pricing-calculator.png}}
+        \includegraphics{Slide-Calculator-Hero.png}}
     \end{column}
 
     \begin{column}{0.40\textwidth}

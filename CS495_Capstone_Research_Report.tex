@@ -33,7 +33,7 @@
 }
 
 \usepackage{graphicx}           % \includegraphics for figures
-\graphicspath{{./}{slides/figures/}{previews/}{project/outputs/}}
+\graphicspath{{./}{slides/figures/}{previews/}{project/outputs/}{assets/figures/}}
 \usepackage{booktabs}           % Professional table rules
 \usepackage{array}
 \usepackage{parskip}
@@ -1249,7 +1249,7 @@ are computed only on the return sweep.
 
 \begin{figure}[h!]
   \centering
-  \includegraphics[width=0.85\textwidth]{Slide-Forward-Pass.png}
+  \includegraphics[width=0.85\textwidth]{Report-Forward-Pass.png}
   \caption{Forward Pass --- AAPL Contract~A stock-price lattice
     (illustration at $N = 5$ steps). Each node is labeled with
     $S(i,j) = S_0 \cdot u^{\,i-j} \cdot d^{\,j}$, computed from
@@ -1282,7 +1282,7 @@ contract as overpriced.
 
 \begin{figure}[h!]
   \centering
-  \includegraphics[width=0.85\textwidth]{Slide-Backward-Pass.png}
+  \includegraphics[width=0.85\textwidth]{Report-Backward-Pass.png}
   \caption{Backward Induction --- AAPL Contract~A option-value
     lattice (illustration at $N = 5$). Each interior node displays
     the maximum of intrinsic and continuation values; the root
