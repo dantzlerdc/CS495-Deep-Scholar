@@ -41,3 +41,7 @@ previews/final_*.png
 previews/slide?_preview-*.png
 previews/slide*_preview_page-*.png
 previews/*.textClipping
+
+# Single-slide preview harnesses (one-off design scratch files)
+slide*_preview.tex
+slide*_preview.pdf
