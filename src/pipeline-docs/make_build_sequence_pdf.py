@@ -1,8 +1,7 @@
 from fpdf import FPDF
 import os
 
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                   "CRR-Binomial-Pricing-Build-Sequence.pdf")
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "dist", "pipeline-docs", "CRR-Binomial-Pricing-Build-Sequence.pdf")
 
 TITLE    = "CRR-Binomial-Pricing-Build-Sequence"
 SUBTITLE = "PLAN2.md -- Layer 1 (Done) and Layer 2 (New) Implementation Guide"

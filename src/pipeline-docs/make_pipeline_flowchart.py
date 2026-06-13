@@ -32,10 +32,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import textwrap, os
 
-OUT    = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                      'CRR-Pipeline-Build-Flowchart.pdf')
-ICONS  = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                      'assets', 'icons')
+OUT    = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'dist', 'pipeline-docs', 'CRR-Pipeline-Build-Flowchart.pdf')
+ICONS  = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'assets', 'icons')
 GITHUB = 'github.com/dantzlerdc/CS495-Deep-Scholar'
 FW, FH = 11.0, 8.5
 PAGES  = 6

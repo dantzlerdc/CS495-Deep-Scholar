@@ -1,8 +1,7 @@
 from fpdf import FPDF
 import os
 
-OUT   = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                     "CRR-Pipeline-Layers-Explained.pdf")
+OUT   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "dist", "pipeline-docs", "CRR-Pipeline-Layers-Explained.pdf")
 
 TITLE  = "CRR-Pipeline-Layers-Explained"
 GITHUB = "github.com/dantzlerdc/CS495-Deep-Scholar"

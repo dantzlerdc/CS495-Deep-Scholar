@@ -41,8 +41,7 @@ from bias_detector import compute_atm_iv, compute_regime
 R       = 0.02
 N_PRICE = 50    # steps for actual pricing
 N_VIZ   = 5    # steps for visualization tree (readable on screen)
-OUT     = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                       "aapl_crr_comparison.html")
+OUT     = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "dist", "interactive", "aapl_crr_comparison.html")
 
 
 # ── CRR helpers ───────────────────────────────────────────────────────────────

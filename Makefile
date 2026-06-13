@@ -36,7 +36,7 @@ run:
 
 # ── run-animation: regenerate crr_pipeline_animation.html ────────────
 run-animation:
-	$(PYEXEC) crr_animation_html.py
+	$(PYEXEC) src/calculator/crr_animation_html.py
 
 # ── run-layer2: run all 7 Layer 2 modules in order ───────────────────
 run-layer2:
@@ -60,27 +60,28 @@ run-comparison:
 	@echo "--- Comparison Step 1: l1_vs_l2 plots ---"
 	$(PYEXEC) project/layer1_vs_layer2.py
 	@echo "--- Comparison Step 2: animated CRR simulation ---"
-	$(PYEXEC) make_aapl_crr_animation.py
+	$(PYEXEC) src/calculator/make_aapl_crr_animation.py
 	@echo ""
 	@echo "Comparison complete."
 	@echo "  Plots  -> project/outputs/l1_vs_l2_comparison.png"
-	@echo "  HTML   -> aapl_crr_comparison.html"
+	@echo "  HTML   -> dist/interactive/aapl_crr_comparison.html"
 
 # ── run-all: Layer 1 (CRR pipeline) then animation then all Layer 2 ──
 run-all: run run-animation run-layer2 run-comparison
 
 # ── users-guide: build the User's Guide PDF from Markdown source ─────
 #   Requires: pandoc + a LaTeX engine (xelatex via MacTeX/TeX Live).
-#   Source: users_guide.md
-#   Output: Users-Guide-CRR-Binomial-Pricing-Calculator.pdf (consumed
-#           by the User's Guide tab of crr_binomial_pricing_calculator.py).
+#   Source: src/users-guide/users_guide.md
+#   Output: dist/users-guide/Users-Guide-CRR-Binomial-Pricing-Calculator.pdf
+#           (consumed by the User's Guide tab of
+#            src/calculator/crr_binomial_pricing_calculator.py).
 users-guide:
-	pandoc users_guide.md \
+	pandoc src/users-guide/users_guide.md \
 	    --from markdown \
 	    --pdf-engine=xelatex \
-	    --output Users-Guide-CRR-Binomial-Pricing-Calculator.pdf
+	    --output dist/users-guide/Users-Guide-CRR-Binomial-Pricing-Calculator.pdf
 	@echo ""
-	@echo "Built Users-Guide-CRR-Binomial-Pricing-Calculator.pdf"
+	@echo "Built dist/users-guide/Users-Guide-CRR-Binomial-Pricing-Calculator.pdf"
 
 # ── clean: remove the virtualenv ─────────────────────────────────────
 clean:
