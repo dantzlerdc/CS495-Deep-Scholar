@@ -1,9 +1,11 @@
 # CS495-Deep-Scholar
 
-CS 495 Capstone Project 6 — Bellevue College, Spring 2026.
-**Mathematical and Empirical Models in Agreement:** Cross-Validating CRR
-Binomial Pricing and Machine Learning for Crowd Mispricing Detection in
-Equity Options.
+### Mathematical and Empirical Models in Agreement
+
+**Cross-Validating CRR Binomial Pricing and Machine Learning for Crowd
+Mispricing Detection in Equity Options**
+
+CS 495 Capstone Project 6 · Bellevue College · Spring 2026
 
 A three-layer pipeline that prices American options with the
 Cox–Ross–Rubinstein binomial lattice (Layer 1), cross-validates the
@@ -75,12 +77,13 @@ documentation deliverables). Every hand-edited source lives under
 
 | You want to… | Look in |
 |--------------|---------|
-| Read the research report | `dist/report/CS495_Capstone_Research_Report.pdf` |
-| Read the presentation | `dist/presentation/CS495_Capstone_Presentation.pdf` |
-| Read the poster | `dist/posters/CS495-Capstone-Poster-BC.pdf` |
-| Run the Streamlit calculator | `src/calculator/crr_binomial_pricing_calculator.py` |
-| Edit the research report source | `src/report/CS495_Capstone_Research_Report.tex` |
-| Edit the presentation source | `src/presentation/CS495_Capstone_Presentation.tex` |
+| Read the research report | [`dist/report/CS495_Capstone_Research_Report.pdf`](dist/report/CS495_Capstone_Research_Report.pdf) |
+| Read the presentation | [`dist/presentation/CS495_Capstone_Presentation.pdf`](dist/presentation/CS495_Capstone_Presentation.pdf) |
+| Read the poster | [`dist/posters/CS495-Capstone-Poster-BC.pdf`](dist/posters/CS495-Capstone-Poster-BC.pdf) |
+| Read the user's guide | [`dist/users-guide/Users-Guide-CRR-Binomial-Pricing-Calculator.pdf`](dist/users-guide/Users-Guide-CRR-Binomial-Pricing-Calculator.pdf) |
+| Run the Streamlit calculator | [`src/calculator/crr_binomial_pricing_calculator.py`](src/calculator/crr_binomial_pricing_calculator.py) |
+| Edit the research report source | [`src/report/CS495_Capstone_Research_Report.tex`](src/report/CS495_Capstone_Research_Report.tex) |
+| Edit the presentation source | [`src/presentation/CS495_Capstone_Presentation.tex`](src/presentation/CS495_Capstone_Presentation.tex) |
 | Re-run the pipeline | `make run` (Layer 1) / `make run-layer2` / `make run-comparison` / `make run-all` |
 | Re-build the user's guide | `make users-guide` |
 
@@ -110,7 +113,7 @@ structural rather than artifactual.
 ## Objectives
 
 1. Implement the CRR American binomial lattice in vectorized Python
-   and price four AMD trade tickets at \\(N=100\\) steps.
+   and price four AMD trade tickets at $N=100$ steps.
 2. Validate pricing accuracy within ±5 % of observed Fidelity
    market premiums.
 3. Compute Δ, Γ, θ, ν, ρ via centered finite differences and
@@ -171,8 +174,8 @@ or via the `make` target that wraps the same.
 
 ## Team Members
 
-**Author:** DeWayne Dantzler
-**Faculty Advisor:** Dr. Pedro Albuquerque
+- **Author:** DeWayne Dantzler
+- **Faculty Advisor:** Dr. Pedro Albuquerque
 
 ---
 
