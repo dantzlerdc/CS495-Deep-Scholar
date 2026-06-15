@@ -1,6 +1,6 @@
 # CS495-Deep-Scholar
 
-### Mathematical and Empirical Models in Agreement
+## Mathematical and Empirical Models in Agreement
 
 **Cross-Validating CRR Binomial Pricing and Machine Learning for Crowd
 Mispricing Detection in Equity Options**
@@ -113,7 +113,7 @@ structural rather than artifactual.
 ## Objectives
 
 1. Implement the CRR American binomial lattice in vectorized Python
-   and price four AMD trade tickets at $N=100$ steps.
+   and price four AMD trade tickets at *N* = 100 steps.
 2. Validate pricing accuracy within ±5 % of observed Fidelity
    market premiums.
 3. Compute Δ, Γ, θ, ν, ρ via centered finite differences and
