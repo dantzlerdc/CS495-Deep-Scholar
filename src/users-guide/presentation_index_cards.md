@@ -259,12 +259,11 @@ header-includes:
     - **Regime detection lag:** IV/RV30 ratio is backward-looking.
     - **Kelly assumptions:** Log-utility; no leverage or portfolio-level limits.
 
-- **Five research extensions** (left panel, can read or paraphrase):
-    1. Expand universe to SPY / QQQ / NDX --- broader cross-sectional test.
-    2. LSTM volatility forecaster for dynamic IV surface predictions.
-    3. Live paper-trading loop via IBKR / Alpaca API.
-    4. Multi-leg spreads (vertical, calendar, iron condor) with joint Kelly.
-    5. Publish open-source framework and Streamlit calculator for peer review.
+- **Four research extensions** (left panel, can read or paraphrase):
+    1. Expand option contracts to use other stock datasets to validate the model against.
+    2. Run the cross-sectional test across multiple expiration cycles and multiple high-liquidity stocks (e.g., NVDA, MSFT) to prove the pipeline's stability.
+    3. Modernize the Layer 2 ML model architecture by replacing XGBoost with **TabPFN v2** --- a transformer-based foundation model for tabular data that delivers state-of-the-art calibrated probability estimates without per-task gradient-boosting training.
+    4. Publish open-source framework and Streamlit calculator for community validation and peer review.
 
 - **Bridge to demo.** "Before conclusions, let me show you the framework actually running."
 
