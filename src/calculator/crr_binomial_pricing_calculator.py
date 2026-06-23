@@ -13,7 +13,7 @@ import pandas as pd
 import streamlit as st
 import yfinance as yf
 
-sys.path.insert(0, str(Path(__file__).parent / "project"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "project"))
 from greeks import compute_greeks
 from kelly import _edge_to_win_prob, kelly_fractions
 from simulation import simulate_pnl
@@ -635,7 +635,10 @@ with tabs[6]:
         "embedded viewer to read inline."
     )
 
-    guide_path = Path(__file__).parent / "Users-Guide-CRR-Binomial-Pricing-Calculator.pdf"
+    guide_path = (
+        Path(__file__).resolve().parents[2]
+        / "dist" / "users-guide" / "Users-Guide-CRR-Binomial-Pricing-Calculator.pdf"
+    )
 
     if guide_path.exists():
         # Cached load — re-reads automatically when the file's mtime changes
